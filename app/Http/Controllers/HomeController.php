@@ -30,6 +30,7 @@ class HomeController extends Controller
      */
     public function index()
     {
+        // take all info for dashboard boxes
         $user_count = User::count();
         $state_count = State::count();
         $city_count = City::count();

@@ -1,166 +1,442 @@
 @extends('admin.layout.main')
 
 @push('dashboard_style')
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    {{-- Select2 CSS (kept as requested) --}}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    {{-- Flowbite-style overrides for Select2 so it matches Tailwind inputs --}}
+    <style>
+        /* ============================================================
+           SELECT2 — Flowbite skin
+           ============================================================ */
+        .select2-container {
+            width: 100% !important;
+        }
+        .select2-container--default .select2-selection--multiple {
+            min-height: 44px;
+            padding: 4px 6px;
+            border-radius: 0.75rem;
+            border: 1px solid #d1d5db;          /* gray-300 */
+            background: #ffffff;
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .select2-container--default.select2-container--focus .select2-selection--multiple,
+        .select2-container--default.select2-container--open .select2-selection--multiple {
+            border-color: #6366f1;               /* indigo-500 */
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+            outline: none;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: #eef2ff;           /* indigo-50 */
+            border: 1px solid #c7d2fe;           /* indigo-200 */
+            color: #4338ca;                      /* indigo-700 */
+            border-radius: 0.5rem;
+            padding: 3px 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin: 3px 4px 3px 0;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+            color: #6366f1;
+            margin-right: 4px;
+            font-weight: 700;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+            color: #dc2626;                      /* red-600 */
+            background: transparent;
+        }
+        .select2-container--default .select2-selection--multiple .select2-search__field {
+            font-size: 0.875rem;
+            padding: 4px 4px;
+            min-height: 28px;
+        }
+        .select2-container--default .select2-selection--multiple .select2-search__field::placeholder {
+            color: #9ca3af;                      /* gray-400 */
+        }
+        .select2-dropdown {
+            border: 1px solid #e5e7eb;           /* gray-200 */
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 25px -8px rgba(15, 23, 42, 0.15);
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+            background-color: #6366f1;           /* indigo-500 */
+            color: #ffffff;
+        }
+        .select2-container--default .select2-results__option--selected {
+            background-color: #eef2ff;
+            color: #4338ca;
+            font-weight: 600;
+        }
+        /* Error state */
+        .has-error .select2-container--default .select2-selection--multiple {
+            border-color: #ef4444;               /* red-500 */
+        }
+        .has-error .select2-container--default.select2-container--focus .select2-selection--multiple {
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+        }
+
+        /* Dark mode */
+        .dark .select2-container--default .select2-selection--multiple {
+            background: #111827;                 /* gray-900 */
+            border-color: #4b5563;               /* gray-600 */
+            color: #f9fafb;
+        }
+        .dark .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: #312e81;           /* indigo-900 */
+            border-color: #4338ca;               /* indigo-700 */
+            color: #c7d2fe;                      /* indigo-200 */
+        }
+        .dark .select2-dropdown {
+            background: #1f2937;                 /* gray-800 */
+            border-color: #374151;               /* gray-700 */
+        }
+        .dark .select2-container--default .select2-results__option {
+            color: #e5e7eb;
+        }
+        .dark .select2-container--default .select2-results__option--selected {
+            background-color: #312e81;
+            color: #c7d2fe;
+        }
+        .dark .select2-search--dropdown .select2-search__field {
+            background: #111827;
+            border-color: #4b5563;
+            color: #f9fafb;
+        }
+    </style>
 @endpush
 
 @section('dashboard_content')
-    <div class="row justify-content-center">
-        <div class="col-md-8 mx-auto">
-            <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                <h1 class="h3 mb-0 text-gray-800">Users Form</h1>
-            </div>
-            <div class="card">
-                <div class="card-header">
-                    <a href="{{ route('users.index') }}" class="float-right btn btn-secondary">Back</a>
-                </div>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="{{ isset($user) ? route('users.update', $user): route('users.store') }}" class="form form-horizontal">
-                    @csrf
-                    @isset($user)
-                    @method('PUT')
-                    @endisset
-                    <div class="form-group row">
-                        <label for="role_id"
-                            class="col-md-4 col-form-label text-md-right">{{ __('Role Name') }}</label>
+    <div class="mx-auto max-w-3xl">
 
-                        <div class="col-md-6">
-                            <select class="form-select form-control @error('roles') is-invalid @enderror" multiple
-                            name="roles[]" id="roleSelect">
-                                @foreach ($roles as $key => $role)
-                                    <option value="{{ $role->id }}"
-                                        @isset($user)
-                                        @foreach ($userRole as $userrole)
-                                            {{ $userrole->name == $role->name ? 'selected': '' }}
-                                        @endforeach
-                                        @endisset>
-                                        {{ $role->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('roles')
-                                <span class="invalid-feedback" role="alert">
-                                    <strong>{{ $message }}</strong>
-                                </span>
-                            @enderror
-                        </div>
-                        @error('role_id')
-                            <span class="invalid-feedback" role="alert">
-                                <strong>{{ $message }}</strong>
-                            </span>
+        {{-- ============================================================
+             PAGE HEADER
+             ============================================================ --}}
+        <header class="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-gray-200 pb-5 dark:border-gray-700">
+            <div>
+                <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+                    {{ isset($user) ? 'Edit User' : 'Create User' }}
+                </h1>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    {{ isset($user)
+                        ? 'Update account details and roles'
+                        : 'Add a new user to the system' }}
+                </p>
+            </div>
+
+            <a href="{{ route('users.index') }}"
+               class="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
+                </svg>
+                <span>Back</span>
+            </a>
+        </header>
+
+        {{-- ============================================================
+             FORM CARD
+             ============================================================ --}}
+        <form method="POST"
+              action="{{ isset($user) ? route('users.update', $user) : route('users.store') }}"
+              class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            @csrf
+            @isset($user)
+                @method('PUT')
+            @endisset
+
+            {{-- Card header strip --}}
+            <div class="border-b border-gray-200 bg-gray-50 px-6 py-4 dark:border-gray-700 dark:bg-gray-900/40">
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    Account Information
+                </h2>
+            </div>
+
+            {{-- Card body --}}
+            <div class="space-y-6 p-6">
+
+                {{-- ============================================================
+                     ROLE (Select2 multi-select)
+                     ============================================================ --}}
+                <div class="{{ $errors->has('roles') ? 'has-error' : '' }}">
+                    <label for="roleSelect"
+                           class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Role Name <span class="text-red-500">*</span>
+                    </label>
+
+                    <select class="form-select w-full @error('roles') is-invalid @enderror"
+                            multiple
+                            name="roles[]"
+                            id="roleSelect">
+                        @foreach ($roles as $key => $role)
+                            <option value="{{ $role->id }}"
+                                @isset($user)
+                                    @foreach ($userRole as $userrole)
+                                        {{ $userrole->name == $role->name ? 'selected' : '' }}
+                                    @endforeach
+                                @endisset>
+                                {{ $role->name }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    @error('roles')
+                        <p class="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
+                            <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 00-1 1v3a1 1 0 002 0V7a1 1 0 00-1-1zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>{{ $message }}</span>
+                        </p>
+                    @enderror
+                </div>
+
+                {{-- Divider --}}
+                <div class="border-t border-gray-100 dark:border-gray-700"></div>
+
+                {{-- ============================================================
+                     USERNAME
+                     ============================================================ --}}
+                <div>
+                    <label for="username"
+                           class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Username <span class="text-red-500">*</span>
+                    </label>
+                    <input id="username"
+                           type="text"
+                           name="username"
+                           value="{{ old('username', $user->username ?? '') }}"
+                           required
+                           autocomplete="username"
+                           autofocus
+                           placeholder="e.g. john.doe"
+                           class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
+                                  @error('username') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                  @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
+                                  @enderror">
+                    @error('username')
+                        <p class="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
+                            <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 00-1 1v3a1 1 0 002 0V7a1 1 0 00-1-1zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>{{ $message }}</span>
+                        </p>
+                    @enderror
+                </div>
+
+                {{-- ============================================================
+                     FIRST + LAST NAME
+                     ============================================================ --}}
+                <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    <div>
+                        <label for="first_name"
+                               class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            First Name <span class="text-red-500">*</span>
+                        </label>
+                        <input id="first_name"
+                               type="text"
+                               name="first_name"
+                               value="{{ old('first_name', $user->first_name ?? '') }}"
+                               required
+                               autocomplete="given-name"
+                               placeholder="John"
+                               class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
+                                      @error('first_name') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                      @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
+                                      @enderror">
+                        @error('first_name')
+                            <p class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
                         @enderror
                     </div>
-                    <div class="form-group row">
-                        <label for="username" class="col-md-4 col-form-label text-md-right">{{ __('Username') }}</label>
 
-                        <div class="col-md-6">
-                            <input id="username" type="text" class="form-control @error('username') is-invalid @enderror"
-                                name="username" value="{{ old('username', $user->username) }}" required autocomplete="username" autofocus>
-
-                            @error('username')
-                                <span class="invalid-feedback" role="alert">
-                                    <strong>{{ $message }}</strong>
-                                </span>
-                            @enderror
-                        </div>
+                    <div>
+                        <label for="last_name"
+                               class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Last Name <span class="text-red-500">*</span>
+                        </label>
+                        <input id="last_name"
+                               type="text"
+                               name="last_name"
+                               value="{{ old('last_name', $user->last_name ?? '') }}"
+                               required
+                               autocomplete="family-name"
+                               placeholder="Doe"
+                               class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
+                                      @error('last_name') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                      @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
+                                      @enderror">
+                        @error('last_name')
+                            <p class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
                     </div>
-                    <div class="form-group row">
-                        <label for="first_name"
-                            class="col-md-4 col-form-label text-md-right">{{ __('First name') }}</label>
+                </div>
 
-                        <div class="col-md-6">
-                            <input id="first_name" type="text"
-                                class="form-control @error('first_name') is-invalid @enderror" name="first_name"
-                                value="{{ old('first_name',$user->first_name) }}" required autocomplete="first_name" autofocus>
+                {{-- ============================================================
+                     EMAIL
+                     ============================================================ --}}
+                <div>
+                    <label for="email"
+                           class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Email Address <span class="text-red-500">*</span>
+                    </label>
+                    <input id="email"
+                           type="email"
+                           name="email"
+                           value="{{ old('email', $user->email ?? '') }}"
+                           required
+                           autocomplete="email"
+                           placeholder="john.doe@example.com"
+                           class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
+                                  @error('email') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                  @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
+                                  @enderror">
+                    @error('email')
+                        <p class="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
+                            <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 00-1 1v3a1 1 0 002 0V7a1 1 0 00-1-1zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>{{ $message }}</span>
+                        </p>
+                    @enderror
+                </div>
 
-                            @error('first_name')
-                                <span class="invalid-feedback" role="alert">
-                                    <strong>{{ $message }}</strong>
-                                </span>
-                            @enderror
-                        </div>
+                {{-- Divider --}}
+                <div class="border-t border-gray-100 dark:border-gray-700"></div>
+
+                {{-- ============================================================
+                     PASSWORD
+                     ============================================================ --}}
+                <div>
+                    <label for="password"
+                           class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Password
+                        @if (isset($user))
+                            <span class="ml-1 text-xs font-normal text-gray-400">(leave blank to keep current)</span>
+                        @else
+                            <span class="text-red-500">*</span>
+                        @endif
+                    </label>
+
+                    <div class="relative">
+                        <input id="password"
+                               type="password"
+                               name="password"
+                               autocomplete="new-password"
+                               placeholder="••••••••"
+                               class="block w-full rounded-xl border bg-white px-3.5 py-2.5 pr-11 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
+                                      @error('password') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                      @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
+                                      @enderror">
+
+                        <button type="button"
+                                data-toggle-password="password"
+                                aria-label="Toggle password visibility"
+                                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none dark:hover:text-gray-300">
+                            <svg data-eye-open class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <svg data-eye-closed class="hidden h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/>
+                            </svg>
+                        </button>
                     </div>
-                    <div class="form-group row">
-                        <label for="last_name" class="col-md-4 col-form-label text-md-right">{{ __('Last name') }}</label>
 
-                        <div class="col-md-6">
-                            <input id="last_name" type="text" class="form-control @error('last_name') is-invalid @enderror"
-                                name="last_name" value="{{ old('last_name',$user->last_name) }}" required autocomplete="last_name"
-                                autofocus>
+                    @error('password')
+                        <p class="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
+                            <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 00-1 1v3a1 1 0 002 0V7a1 1 0 00-1-1zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>{{ $message }}</span>
+                        </p>
+                    @enderror
+                </div>
 
-                            @error('last_name')
-                                <span class="invalid-feedback" role="alert">
-                                    <strong>{{ $message }}</strong>
-                                </span>
-                            @enderror
-                        </div>
+                {{-- ============================================================
+                     CONFIRM PASSWORD
+                     ============================================================ --}}
+                <div>
+                    <label for="password-confirm"
+                           class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Confirm Password
+                    </label>
+
+                    <div class="relative">
+                        <input id="password-confirm"
+                               type="password"
+                               name="password_confirmation"
+                               autocomplete="new-password"
+                               placeholder="••••••••"
+                               class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 pr-11 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500 dark:focus:border-indigo-400">
+
+                        <button type="button"
+                                data-toggle-password="password-confirm"
+                                aria-label="Toggle password visibility"
+                                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none dark:hover:text-gray-300">
+                            <svg data-eye-open class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <svg data-eye-closed class="hidden h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/>
+                            </svg>
+                        </button>
                     </div>
+                </div>
 
-                    <div class="form-group row">
-                        <label for="email"
-                            class="col-md-4 col-form-label text-md-right">{{ __('E-Mail Address') }}</label>
-
-                        <div class="col-md-6">
-                            <input id="email" type="email" class="form-control @error('email') is-invalid @enderror"
-                                name="email" value="{{ old('email',$user->email) }}" required autocomplete="email">
-
-                            @error('email')
-                                <span class="invalid-feedback" role="alert">
-                                    <strong>{{ $message }}</strong>
-                                </span>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <div class="form-group row">
-                        <label for="password" class="col-md-4 col-form-label text-md-right">{{ __('Password') }}</label>
-
-                        <div class="col-md-6">
-                            <input id="password" type="password"
-                                class="form-control @error('password') is-invalid @enderror" name="password"
-                                autocomplete="new-password">
-
-                            @error('password')
-                                <span class="invalid-feedback" role="alert">
-                                    <strong>{{ $message }}</strong>
-                                </span>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <div class="form-group row">
-                        <label for="password-confirm"
-                            class="col-md-4 col-form-label text-md-right">{{ __('Confirm Password') }}</label>
-
-                        <div class="col-md-6">
-                            <input id="password-confirm" type="password" class="form-control" name="password_confirmation"
-                                autocomplete="new-password">
-                        </div>
-                    </div>
-
-                    <div class="form-group row mb-0">
-                        <div class="col-md-6 offset-md-4">
-                            <button type="submit" class="btn btn-primary">
-                                @if (isset($user))
-                                {{ __('Update') }}
-                                @else
-                                {{ __('Add New') }}
-                                @endif
-                            </button>
-                        </div>
-                    </div>
-                </form>
             </div>
-        </div>
+
+            {{-- ============================================================
+                 CARD FOOTER
+                 ============================================================ --}}
+            <div class="flex flex-wrap items-center justify-end gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4 dark:border-gray-700 dark:bg-gray-900/40">
+                <a href="{{ route('users.index') }}"
+                   class="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+                    Cancel
+                </a>
+
+                <button type="submit"
+                        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-500/40 hover:brightness-105 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                    </svg>
+                    <span>{{ isset($user) ? 'Update' : 'Add New' }}</span>
+                </button>
+            </div>
+
+        </form>
+
     </div>
 @endsection
 
 @push('dashboard_script')
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script>
-    $(document).ready(function() {
-    $('#roleSelect').select2();
-});
-</script>
+    {{-- Select2 JS (kept as requested) --}}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Init Select2 with Flowbite-friendly options
+            $('#roleSelect').select2({
+                placeholder: 'Select one or more roles',
+                allowClear: true,
+                width: '100%',
+                closeOnSelect: false,
+            });
+        });
+
+        // Password visibility toggles
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('[data-toggle-password]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const input = document.getElementById(btn.dataset.togglePassword);
+                    if (! input) return;
+
+                    const isHidden = input.type === 'password';
+                    input.type = isHidden ? 'text' : 'password';
+
+                    btn.querySelector('[data-eye-open]')?.classList.toggle('hidden', isHidden);
+                    btn.querySelector('[data-eye-closed]')?.classList.toggle('hidden', ! isHidden);
+                });
+            });
+        });
+    </script>
 @endpush

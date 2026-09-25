@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class UserObserver
 {
@@ -15,7 +16,12 @@ class UserObserver
      */
     public function created(User $user)
     {
-        Log::info("New user".$user."Data Inserted by ".auth()->user()->username);
+        // dd(auth()->user());
+        // if(auth()->user()->username != null){
+        //     dd(auth()->user());
+        //     Log::info("New user".$user."Data Inserted by ".auth()->user()->username);
+        // }
+        
     }
 
     /**
@@ -26,7 +32,9 @@ class UserObserver
      */
     public function updated(User $user)
     {
-        Log::info("User".$user."Data Updated by ".auth()->user()->username);
+        if(auth()->user()->username != null){
+            Log::info("User".$user."Data Updated by ".auth()->user()->username);
+        }
     }
 
     /**
@@ -37,7 +45,9 @@ class UserObserver
      */
     public function deleted(User $user)
     {
-        Log::info("User".$user."Data Deleted by ".auth()->user()->username);
+        if(auth()->user()->username != null){
+            Log::info("User".$user."Data Deleted by ".auth()->user()->username);
+        }
     }
 
     /**

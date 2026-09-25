@@ -20,17 +20,13 @@ class UserController extends Controller
      */
     function __construct()
     {
-        $this->middleware('permission:user-list|user-create|user-edit|user-delete', ['only' => ['index','store']]);
-        $this->middleware('permission:user-create', ['only' => ['create','store']]);
-        $this->middleware('permission:user-edit', ['only' => ['edit','update']]);
-        $this->middleware('permission:user-delete', ['only' => ['destroy']]);
+        // $this->middleware('permission:user-list|user-create|user-edit|user-delete', ['only' => ['index','store']]);
+        // $this->middleware('permission:user-create', ['only' => ['create','store']]);
+        // $this->middleware('permission:user-edit', ['only' => ['edit','update']]);
+        // $this->middleware('permission:user-delete', ['only' => ['destroy']]);
     }
 
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+
     public function index(Request $request)
     {
         $users = User::latest('id')->paginate(5)->withQueryString();
@@ -41,23 +37,14 @@ class UserController extends Controller
         return view('admin.pages.Users.index', compact('users'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+
     public function create()
     {
         $roles = Role::select('id', 'name')->latest('id')->get();
         return view('admin.pages.Users.create', compact('roles'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
+
     public function store(UserStoreRequest $request)
     {
         $user = User::create([
@@ -69,32 +56,23 @@ class UserController extends Controller
         ]);
 
         $user->assignRole($request->input('roles'));
+        dd($user);
 
         $notification = [
             'alert_type' => 'Success',
             'message' => 'User Created Successfully!!!'
         ];
-        notify()->success($notification['message'],$notification['alert_type'],"topRight");
-        return redirect()->route('users.index')->with($notification);
+        // notify()->success($notification['message'],$notification['alert_type'],"topRight");
+        return redirect()->route('users.index')->with('success', 'Created');
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\Models\User  $user
-     * @return \Illuminate\Http\Response
-     */
+ 
     public function show(User $user)
     {
         //
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\User  $user
-     * @return \Illuminate\Http\Response
-     */
+   
     public function edit(User $user)
     {
         $roles = Role::select('id', 'name')->latest('id')->get();
@@ -106,13 +84,7 @@ class UserController extends Controller
         ));
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\User  $user
-     * @return \Illuminate\Http\Response
-     */
+  
     public function update(UserUpdateRequest $request, User $user)
     {
         $user->update([
@@ -137,12 +109,7 @@ class UserController extends Controller
         return redirect()->route('users.index')->with($notification);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\User  $user
-     * @return \Illuminate\Http\Response
-     */
+    
     public function destroy(User $user)
     {
         if(Auth::user()->id == $user->id){

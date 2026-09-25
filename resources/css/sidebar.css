@@ -1,0 +1,56 @@
+/* ----- Collapsed (rail) sidebar ----- */
+@media (min-width: 1024px) {
+    body.sidebar-collapsed #sidebar {
+        width: 4.5rem;
+    }
+
+    body.sidebar-collapsed #main-content {
+        margin-left: 4.5rem;
+    }
+
+    body.sidebar-collapsed #sidebar .sidebar-label {
+        opacity: 0;
+        width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        transition: opacity 120ms ease, width 200ms ease;
+    }
+
+    body.sidebar-collapsed #sidebar .sidebar-label:not(.kbd) {
+        display: none;
+    }
+
+    /* Tooltip when collapsed */
+    body.sidebar-collapsed #sidebar a[title]:hover::after,
+    body.sidebar-collapsed #sidebar button[title]:hover::after {
+        content: attr(title);
+        position: absolute;
+        left: calc(100% + 8px);
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 4px 8px;
+        background: #111827;
+        color: #fff;
+        font-size: 12px;
+        border-radius: 6px;
+        white-space: nowrap;
+        z-index: 60;
+        pointer-events: none;
+    }
+
+    body.sidebar-collapsed #sidebar a,
+    body.sidebar-collapsed #sidebar button[data-collapse-toggle] {
+        justify-content: center;
+        position: relative;
+    }
+
+    /* Hide nested submenus when collapsed */
+    body.sidebar-collapsed #sidebar ul[id^="dropdown-"] {
+        display: none;
+    }
+}
+
+/* Smooth transition for main content shift */
+#main-content {
+    transition: margin-left 200ms ease-out;
+}

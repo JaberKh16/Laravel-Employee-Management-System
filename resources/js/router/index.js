@@ -1,4 +1,6 @@
+// vue 2 version import
 import Vue from "vue";
+
 import VueRouter from "vue-router";
 
 // Load components
@@ -9,7 +11,7 @@ import EmployeeEdit from '../pages/Employee/Edit.vue'
 Vue.use(VueRouter);
 
 const routes = [
-    { path: '/employees', component: EmployeeIndex, name: 'employee.index' },
+    { path: '/employees/index', component: EmployeeIndex, name: 'employee.index' },
     { path: '/employees/create', component: EmployeeCreate, name: 'employee.create' },
     { path: '/employees/edit/:id', component: EmployeeEdit, name: 'employee.edit' },
 ];

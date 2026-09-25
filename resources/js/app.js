@@ -6,6 +6,13 @@
 
 require('./bootstrap');
 
+
+import './flowbite-init';
+import './theme-toggle';
+
+
+
+
 window.Vue = require('vue').default;
 import router from './router'
 
@@ -15,3 +22,9 @@ const app = new Vue({
     el: '#app',
     router
 });
+
+
+
+// sidebar script
+import { initSidebar } from './sidebar';
+initSidebar();

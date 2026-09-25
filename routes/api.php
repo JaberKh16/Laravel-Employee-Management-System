@@ -22,7 +22,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::middleware(['auth'])->group(function () {
 
 });
+
+// employe resource api
 Route::apiResource('employees', EmployeeController::class);
+
+// fetch dependent fields
 Route::get('/countries', [EmployeeController::class, 'getCountries'])->name('get.countries');
 Route::get('/cities', [EmployeeController::class, 'getCities'])->name('get.cities');
 Route::get('/states', [EmployeeController::class, 'getStates'])->name('get.states');
