@@ -13,69 +13,62 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var string[]
-     */
+    protected $table = 'users';
     protected $fillable = [
         'username',
-        'first_name',
-        'last_name',
         'email',
         'password',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array
-     */
+
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
 
 
-    /**
-     * Get the user's full name.
-     *
-     * @return string
-     */
-    public function getFullNameAttribute()
+
+    // public function getFullNameAttribute()
+    // {
+    //     return "{$this->first_name} {$this->last_name}";
+    // }
+
+
+    // public function setFirstNameAttribute($value)
+    // {
+    //     $this->attributes['first_name'] = ucfirst($value);
+    // }
+
+
+
+    // public function setLastNameAttribute($value)
+    // {
+    //     $this->attributes['last_name'] = ucfirst($value);
+    // }
+
+    public function parent()
     {
-        return "{$this->first_name} {$this->last_name}";
+        return $this->belongsTo(User::class, 'user_id');
     }
 
-    /**
-     * Set the user's first name.
-     *
-     * @param  string  $value
-     * @return void
-     */
-    public function setFirstNameAttribute($value)
+    public function children()
     {
-        $this->attributes['first_name'] = ucfirst($value);
+        return $this->hasMany(User::class, 'user_id');
     }
 
-
-    /**
-     * Set the user's last name.
-     *
-     * @param  string  $value
-     * @return void
-     */
-    public function setLastNameAttribute($value)
+    public function profile()
     {
-        $this->attributes['last_name'] = ucfirst($value);
+        return $this->hasOne(Profile::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (User $user) {
+            $user->profile()->create([]);
+        });
     }
 }

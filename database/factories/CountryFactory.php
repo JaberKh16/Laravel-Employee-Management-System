@@ -24,6 +24,7 @@ class CountryFactory extends Factory
         return [
             'country_code' => $this->faker->countryCode,
             'name' => $this->faker->country,
+            'description' => $this->faker->sentence(12),
         ];
     }
 }

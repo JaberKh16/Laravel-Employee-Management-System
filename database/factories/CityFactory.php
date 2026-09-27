@@ -24,7 +24,8 @@ class CityFactory extends Factory
     {
         return [
             'state_id' => State::select('id')->get()->random()->id,
-            'name' => $this->faker->city
+            'name' => $this->faker->city,
+            'description' => $this->faker->sentence(12),
         ];
     }
 }

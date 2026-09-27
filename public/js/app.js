@@ -27703,6 +27703,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _pages_Employee_Index_vue__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../pages/Employee/Index.vue */ "./resources/js/pages/Employee/Index.vue");
 /* harmony import */ var _pages_Employee_Create_vue__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../pages/Employee/Create.vue */ "./resources/js/pages/Employee/Create.vue");
 /* harmony import */ var _pages_Employee_Edit_vue__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../pages/Employee/Edit.vue */ "./resources/js/pages/Employee/Edit.vue");
+// vue 2 version import
 
 
 
@@ -27712,7 +27713,7 @@ __webpack_require__.r(__webpack_exports__);
 
 vue__WEBPACK_IMPORTED_MODULE_0__["default"].use(vue_router__WEBPACK_IMPORTED_MODULE_4__["default"]);
 var routes = [{
-  path: '/employees',
+  path: '/employees/index',
   component: _pages_Employee_Index_vue__WEBPACK_IMPORTED_MODULE_1__["default"],
   name: 'employee.index'
 }, {

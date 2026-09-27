@@ -15,7 +15,16 @@ class CreateDepartmentsTable extends Migration
     {
         Schema::create('departments', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('name')->unique();
+            $table->text('description')->nullable();
+            $table->string('floor')->nullable();
+
+            $table->foreignId('manager_id')
+                ->nullable()
+                ->unique()                     // remove if manager can run multiple depts
+                ->constrained('users')
+                ->nullOnDelete();              // delete manager → dept stays, manager_id = NULL
+
             $table->timestamps();
         });
     }

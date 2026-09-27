@@ -16,34 +16,59 @@ class UserFactory extends Factory
     protected $model = User::class;
 
     /**
-     * Define the model's default state.
-     *
-     * @return array
+     * Cache the hashed password so we don't bcrypt 20+ times.
      */
+    protected static ?string $password = null;
+
     public function definition()
     {
         return [
-            'username' => $this->faker->name(),
-            'first_name' => $this->faker->name(),
-            'last_name' => $this->faker->name(),
+            'username' => $this->faker->unique()->userName(),
             'email' => $this->faker->unique()->safeEmail(),
             'email_verified_at' => now(),
-            'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
+            'password' => static::$password ??= Hash::make('password'),
+            'status' => 1,   // 1 = active
             'remember_token' => Str::random(10),
+
+            // Optional FK columns from your migration
+            'user_id' => null,
+            'profile_id' => null,
+            'dept_id' => null,
+            'created_by' => null,
+            'updated_by' => null,
+
         ];
     }
 
     /**
-     * Indicate that the model's email address should be unverified.
-     *
-     * @return \Illuminate\Database\Eloquent\Factories\Factory
+     * Unverified user.
      */
-    public function unverified()
+    public function unverified(): static
     {
-        return $this->state(function (array $attributes) {
-            return [
-                'email_verified_at' => null,
-            ];
+        return $this->state(fn() => [
+            'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * Inactive user.
+     */
+    public function inactive(): static
+    {
+        return $this->state(fn() => [
+            'status' => 0,
+        ]);
+    }
+
+    /**
+     * Assign a role after creation.
+     */
+    public function withRole(string $role): static
+    {
+        return $this->afterCreating(function (User $user) use ($role) {
+            if (method_exists($user, 'assignRole')) {
+                $user->assignRole($role);
+            }
         });
     }
 }
