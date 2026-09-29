@@ -33,6 +33,8 @@ Route::get('/generate-report', [HomeController::class, 'generateReport'])->name(
 Route::middleware(['auth'])->group(function () {
     Route::prefix('admin')->group(function () {
         Route::resource('users', UserController::class);
+        Route::get('users/profile', [UserController::class, 'profile'])->name('users.profile');
+        Route::put('users/profile', [UserController::class, 'profileUpdate'])->name('users.profile.update');
         Route::resource('countries', CountryController::class);
         Route::resource('cities', CityController::class);
         Route::resource('states', StateController::class);

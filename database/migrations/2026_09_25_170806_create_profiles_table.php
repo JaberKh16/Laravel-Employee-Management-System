@@ -24,7 +24,7 @@ class CreateProfilesTable extends Migration
 
             // Personal info
             $table->string('first_name')->default(null);
-            $table->string('last_name')->default(null);
+            $table->string('last_name')->nullable()->default(null);
             $table->string('phone', 30)->nullable();
             $table->string('avatar')->nullable();       // path or URL
             $table->date('birthdate')->nullable();
@@ -56,7 +56,7 @@ class CreateProfilesTable extends Migration
             $table->string('twitter')->nullable();
 
             $table->timestamps();
-            $table->softDeletes();   // optional — remove if you don't want it
+ 
         });
     }
 

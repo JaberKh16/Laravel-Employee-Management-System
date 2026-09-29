@@ -4,15 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Http\Enums\EmployeeStatus;
 
 class Employee extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'last_name',
-        'first_name',
-        'middle_name',
         'address',
         'department_id',
         'country_id',
@@ -22,6 +20,23 @@ class Employee extends Model
         'birthdate',
         'date_hired',
     ];
+
+    protected $casts = [
+        'status' => EnumCast::class . ':' . EmployeeStatus::class,
+    ];
+
+    public function isEmployed(): bool
+    {
+        return in_array($this->status, EmployeeStatus::employed(), true);
+    }
+
+    public function scopeEmployed($query)
+    {
+        return $query->whereIn('status', array_map(
+            fn (EmployeeStatus $s) => $s->value,
+            EmployeeStatus::employed()
+        ));
+    }
 
     public function department()
     {

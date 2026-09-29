@@ -163,7 +163,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="{{ route('users.index') }}"
+                            <a href="{{ route('users.profile') }}"
                                class="flex items-center gap-2 px-4 py-2
                                       hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-white">
                                 <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">

@@ -3,7 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-
+use App\Http\Enums\ActiveStatus;
 class CreateDepartmentsTable extends Migration
 {
     /**
@@ -18,7 +18,7 @@ class CreateDepartmentsTable extends Migration
             $table->string('name')->unique();
             $table->text('description')->nullable();
             $table->string('floor')->nullable();
-
+            $table->tinyInteger('status')->default(ActiveStatus::Active->value);
             $table->foreignId('manager_id')
                 ->nullable()
                 ->unique()                     // remove if manager can run multiple depts

@@ -3,6 +3,8 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use App\Http\Enums\EmployeeStatus;
+
 
 class AddNewColumnsToEmployeeTable extends Migration
 {
@@ -20,14 +22,18 @@ class AddNewColumnsToEmployeeTable extends Migration
             $table->date('hired_date')->nullable()->after('salary');
             $table->date('confirmation_date')->nullable()->after('hired_date');
             $table->date('termination_date')->nullable()->after('confirmation_date');
-            $table->enum('status', [
-                'active',
-                'inactive',
-                'on_leave',
-                'suspended',
-                'resigned',
-                'terminated',
-            ])->default('active')->after('termination_date');
+            // $table->enum('status', [
+            //     'active',
+            //     'inactive',
+            //     'on_leave',
+            //     'suspended',
+            //     'resigned',
+            //     'terminated',
+            // ])->default('active')->after('termination_date');
+
+             $table->enum('status', EmployeeStatus::values())->default(EmployeeStatus::Active->value);
+
+            $table->unsignedBigInteger('job_profile_id')->nullable()->after('status');
 
         });
     }

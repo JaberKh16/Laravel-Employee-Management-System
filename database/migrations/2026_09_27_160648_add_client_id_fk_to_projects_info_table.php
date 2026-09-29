@@ -17,7 +17,7 @@ class AddClientIdFkToProjectsInfoTable extends Migration
         Schema::table('project_infos', function (Blueprint $table) {
             $table->foreign('client_id')
                 ->references('id')
-                ->on('clients')
+                ->on('clients_infos')
                 ->nullOnDelete();
         });
     }

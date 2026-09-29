@@ -8,16 +8,26 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use App\Http\Casts\IntEnumCast;
+use App\Http\Casts\UserStatusCast;
+use App\Http\Enums\ActiveStatus;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes;
 
     protected $table = 'users';
     protected $fillable = [
         'username',
         'email',
         'password',
+        'user_id',
+        'profile_id',
+        'dept_id',
+        'status',
+        'created_by',
+        'updated_by',
     ];
 
 
@@ -28,27 +38,10 @@ class User extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'status' => IntEnumCast::class . ':' . ActiveStatus::class,
     ];
 
 
-
-    // public function getFullNameAttribute()
-    // {
-    //     return "{$this->first_name} {$this->last_name}";
-    // }
-
-
-    // public function setFirstNameAttribute($value)
-    // {
-    //     $this->attributes['first_name'] = ucfirst($value);
-    // }
-
-
-
-    // public function setLastNameAttribute($value)
-    // {
-    //     $this->attributes['last_name'] = ucfirst($value);
-    // }
 
     public function parent()
     {
@@ -65,10 +58,15 @@ class User extends Authenticatable
         return $this->hasOne(Profile::class);
     }
 
-    protected static function booted(): void
+    // protected static function booted(): void
+    // {
+    //     static::created(function (User $user) {
+    //         $user->profile()->create([]);
+    //     });
+    // }
+
+    public function departmentInfo()
     {
-        static::created(function (User $user) {
-            $user->profile()->create([]);
-        });
+        return $this->belongsTo(Department::class);
     }
 }

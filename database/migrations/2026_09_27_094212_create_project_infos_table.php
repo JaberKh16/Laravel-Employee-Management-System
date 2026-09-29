@@ -3,6 +3,8 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use App\Http\Enums\ProjectStatus;
+use App\Http\Enums\PriorityStatus;
 
 class CreateProjectInfosTable extends Migration
 {
@@ -24,6 +26,7 @@ class CreateProjectInfosTable extends Migration
             // ---- Client ----
             // $table->foreignId('client_id')->nullable()
             //     ->constrained('clients')->nullOnDelete();
+            $table->unsignedBigInteger('client_id')->nullable();
 
             // ---- Assignment ----
             $table->string('assignee')->nullable();
@@ -37,20 +40,25 @@ class CreateProjectInfosTable extends Migration
             $table->date('deadline')->nullable();
 
             // ---- Status / progress ----
-            $table->enum('status', [
-                'planning',
-                'in_progress',
-                'on_hold',
-                'completed',
-                'cancelled',
-            ])->default('planning');
+            // $table->enum('status', [
+            //     'planning',
+            //     'in_progress',
+            //     'on_hold',
+            //     'completed',
+            //     'cancelled',
+            // ])->default('planning');
 
-            $table->enum('priority', [
-                'low',
-                'medium',
-                'high',
-                'urgent',
-            ])->default('medium');
+            $table->enum('status', ProjectStatus::values())
+                ->default(ProjectStatus::Active->value);
+
+            // $table->enum('priority', [
+            //     'low',
+            //     'medium',
+            //     'high',
+            //     'urgent',
+            // ])->default('medium');
+
+            $table->enum('priority', PriorityStatus::values())->default(PriorityStatus::Medium->value);
 
             $table->unsignedTinyInteger('progress')->default(0);
 

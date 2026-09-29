@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use App\Http\Enums\ActiveStatus;
 
 class AddRelationsToUsersTable extends Migration
 {
@@ -26,7 +27,8 @@ class AddRelationsToUsersTable extends Migration
                 ->constrained('users')->nullOnDelete();
 
             // Status
-            $table->boolean('status')->default(1);   // 1 = active, 0 = inactive
+            //$table->boolean('status')->default(1);   // 1 = active, 0 = inactive
+            $table->tinyInteger('status')->default(ActiveStatus::Active->value);
         });
     }
 

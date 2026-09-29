@@ -4,11 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+
 
 class Profile extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $table = 'profiles';
 
@@ -16,6 +16,7 @@ class Profile extends Model
         'user_id',
         'first_name',
         'last_name',
+        'middle_name',
         'phone',
         'avatar',
         'birthdate',
@@ -28,7 +29,7 @@ class Profile extends Model
         'city_id',
         'website',
         'linkedin',
-        'twitter',
+        'twitter'
     ];
 
     protected $casts = [

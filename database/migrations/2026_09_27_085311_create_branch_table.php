@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use App\Http\Enums\BranchStatus;
 
 class CreateBranchTable extends Migration
 {
@@ -19,12 +20,14 @@ class CreateBranchTable extends Migration
             $table->text('description')->nullable()->default(null);
 
             // ---- Status ----
-            $table->enum('status', [
-                'active',
-                'inactive',
-                'closed',
-                'under_maintenance',
-            ])->default('active');
+            // $table->enum('status', [
+            //     'active',
+            //     'inactive',
+            //     'closed',
+            //     'under_maintenance',
+            // ])->default('active');
+
+            $table->enum('status', BranchStatus::values())->default(BranchStatus::Active->value);
 
             $table->timestamps();
             $table->softDeletes();;
