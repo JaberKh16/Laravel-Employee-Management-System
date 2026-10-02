@@ -7,58 +7,44 @@ use Illuminate\Support\Facades\Log;
 
 class CountryObserver
 {
-    /**
-     * Handle the Country "created" event.
-     *
-     * @param  \App\Models\Country  $country
-     * @return void
-     */
-    public function created(Country $country)
+    public function created(Country $country): void
     {
-        Log::info("New country".$country."Data Inserted by ".auth()->user()->username);
+        $this->log($country, 'created');
+    }
+
+    public function updated(Country $country): void
+    {
+        $this->log($country, 'updated');
+    }
+
+    public function deleted(Country $country): void
+    {
+        $this->log($country, 'deleted');
+    }
+
+    public function restored(Country $country): void
+    {
+        $this->log($country, 'restored');
+    }
+
+    public function forceDeleted(Country $country): void
+    {
+        $this->log($country, 'force-deleted');
     }
 
     /**
-     * Handle the Country "updated" event.
-     *
-     * @param  \App\Models\Country  $country
-     * @return void
+     * Centralised log writer — safe for CLI / unauthenticated contexts.
      */
-    public function updated(Country $country)
+    protected function log(Country $country, string $action): void
     {
-        Log::info("Country".$country."Data Updated by ".auth()->user()->username);
-    }
+        $actor = auth()->user()?->username ?? 'system';
 
-    /**
-     * Handle the Country "deleted" event.
-     *
-     * @param  \App\Models\Country  $country
-     * @return void
-     */
-    public function deleted(Country $country)
-    {
-        Log::info("Country".$country."Data Deleted by ".auth()->user()->username);
-    }
-
-    /**
-     * Handle the Country "restored" event.
-     *
-     * @param  \App\Models\Country  $country
-     * @return void
-     */
-    public function restored(Country $country)
-    {
-        //
-    }
-
-    /**
-     * Handle the Country "force deleted" event.
-     *
-     * @param  \App\Models\Country  $country
-     * @return void
-     */
-    public function forceDeleted(Country $country)
-    {
-        //
+        Log::info('Country ' . $action, [
+            'id'         => $country->id,
+            'name'       => $country->name,
+            'actor'      => $actor,
+            'ip'         => request()->ip(),
+            'timestamp'  => now()->toDateTimeString(),
+        ]);
     }
 }

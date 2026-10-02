@@ -2,6 +2,7 @@
 
 namespace App\Http\Casts;
 
+use BackedEnum;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use InvalidArgumentException;
 
@@ -9,7 +10,7 @@ class EnumCast implements CastsAttributes
 {
     public function __construct(protected string $enumClass)
     {
-        if (! enum_exists($this->enumClass)) {
+        if (!enum_exists($this->enumClass)) {
             throw new InvalidArgumentException("Class {$this->enumClass} is not a valid enum.");
         }
     }

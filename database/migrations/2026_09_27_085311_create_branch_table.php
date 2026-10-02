@@ -14,11 +14,34 @@ class CreateBranchTable extends Migration
      */
     public function up()
     {
+      
         Schema::create('branch', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->nullable()->default(null);
-            $table->text('description')->nullable()->default(null);
 
+            /* ---------- Identity ---------- */
+            $table->string('name');
+            $table->string('code')->nullable()->unique();
+            $table->text('description')->nullable();
+
+            /* ---------- Contact ---------- */
+            $table->string('email')->nullable();
+            $table->string('phone', 30)->nullable();
+
+            /* ---------- Address ---------- */
+            $table->string('address')->nullable();
+            $table->string('zip_code', 20)->nullable();
+
+            $table->foreignId('country_id')->nullable()
+                ->constrained('countries')->nullOnDelete();
+            $table->foreignId('state_id')->nullable()
+                ->constrained('states')->nullOnDelete();
+            $table->foreignId('city_id')->nullable()
+                ->constrained('cities')->nullOnDelete();
+
+            /* ---------- Management ---------- */
+            $table->string('manager_name')->nullable();
+
+            /* ---------- Status ---------- */
             // ---- Status ----
             // $table->enum('status', [
             //     'active',
@@ -26,21 +49,22 @@ class CreateBranchTable extends Migration
             //     'closed',
             //     'under_maintenance',
             // ])->default('active');
-
-            $table->enum('status', BranchStatus::values())->default(BranchStatus::Active->value);
+            $table->enum('status', BranchStatus::values())
+                ->default(BranchStatus::Active->value)
+                ->index();
 
             $table->timestamps();
-            $table->softDeletes();;
+            $table->softDeletes();
         });
     }
 
     /**
      * Reverse the migrations.
-     *
-     * @return void
      */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('branch');
     }
+
+   
 }

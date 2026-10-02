@@ -3,16 +3,19 @@
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ProfileUpdateRequest;
 use App\Http\Requests\UserStoreRequest;
 use App\Http\Requests\UserUpdateRequest;
-use App\Models\User;
-use App\Models\Country;
 use App\Models\City;
+use App\Models\Country;
 use App\Models\State;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
+
 
 class UserController extends Controller
 {
@@ -140,63 +143,41 @@ class UserController extends Controller
         return view('admin.pages.Users.profile', compact('user', 'countries', 'states', 'cities'));
     }
 
-    public function profileUpdate(Request $request)
+    public function profileUpdate(ProfileUpdateRequest $request)
     {
-        $user = Auth::user();
+        $user = $request->user();
+        // dd($user);
+        // dd($request->all());
 
-        $data = $request->validate([
-            // User table
-            'username'   => ['required', 'string', 'max:255', 'unique:users,username,' . $user->id],
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name'  => ['required', 'string', 'max:255'],
-            'email'      => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
 
-            // Profile table
-            'phone'      => ['nullable', 'string', 'max:30'],
-            'avatar'     => ['nullable', 'image', 'max:2048'],
-            'birthdate'  => ['nullable', 'date'],
-            'gender'     => ['nullable', 'in:male,female,other'],
-            'bio'        => ['nullable', 'string', 'max:1000'],
-            'address'    => ['nullable', 'string', 'max:255'],
-            'zip_code'   => ['nullable', 'string', 'max:20'],
-            'country_id' => ['nullable', 'exists:countries,id'],
-            'state_id'   => ['nullable', 'exists:states,id'],
-            'city_id'    => ['nullable', 'exists:cities,id'],
-            'website'    => ['nullable', 'url', 'max:255'],
-            'linkedin'   => ['nullable', 'url', 'max:255'],
-            'twitter'    => ['nullable', 'url', 'max:255'],
-
-            // Password (optional)
-            'password'   => ['nullable', 'string', 'min:8', 'confirmed'],
-        ]);
-
-        // Handle avatar upload
-        if ($request->hasFile('avatar')) {
-            $data['avatar'] = $request->file('avatar')->store('avatars', 'public');
-        }
-
-        // Split user vs profile fields
-        $userFields = ['username', 'first_name', 'last_name', 'email'];
-        $profileFields = [
-            'phone', 'avatar', 'birthdate', 'gender', 'bio',
-            'address', 'zip_code', 'country_id', 'state_id', 'city_id',
-            'website', 'linkedin', 'twitter',
-        ];
-
-        $userData = array_intersect_key($data, array_flip($userFields));
+        /* ---------- 1. User table ---------- */
+        $userData = $request->validatedUserFields();
 
         if ($request->filled('password')) {
-            $userData['password'] = \Illuminate\Support\Facades\Hash::make($data['password']);
+            $userData['password'] = Hash::make($request->input('password'));
         }
 
         $user->update($userData);
-        $user->profile()->updateOrCreate(
-            ['user_id' => $user->id],
-            array_intersect_key($data, array_flip($profileFields))
-        );
 
-        notify()->success('Profile Updated Successfully!!!', 'Success', 'topRight');
-        return redirect()->route('users.profile');
+        /* ---------- 2. Profile table ---------- */
+        $profileData = $request->validatedProfileFields();
+
+
+        // Avatar upload (delete old file first)
+        if ($request->hasFile('avatar')) {
+            if ($user->profile?->avatar && Storage::disk('public')->exists($user->profile->avatar)) {
+                Storage::disk('public')->delete($user->profile->avatar);
+            }
+            $profileData['avatar'] = $request->file('avatar')->store('avatars/' . $user->id, 'public');
+        }
+
+        $user->profile()->updateOrCreate(['user_id' => $user->id], $profileData);
+
+        // notify()->success('Profile Updated Successfully!!!', 'Success', 'topRight');
+
+        return redirect()
+            ->route('users.profile')
+            ->with('success', 'Profile Updated Successfully!');
     }
 
 }

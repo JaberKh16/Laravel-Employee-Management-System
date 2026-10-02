@@ -1,9 +1,9 @@
 @extends('admin.layout.main')
 
 @push('dashboard_style')
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
     <style>
-        /* Select2 — Flowbite skin (same as your create/edit view) */
+        /* Select2 — Flowbite skin */
         .select2-container { width: 100% !important; }
         .select2-container--default .select2-selection--single {
             height: 42px;
@@ -54,12 +54,40 @@
         .dark .select2-search--dropdown .select2-search__field {
             background: #111827; border-color: #4b5563; color: #f9fafb;
         }
+        label:has(input[name="gender"]:active) > div {
+            transform: scale(0.97);
+        }
+        label > div {
+            transition: transform 0.15s ease, border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .dark .ck.ck-editor__main > .ck-editor__editable {
+            background-color: #1f2937;
+            color: #f3f4f6;
+        }
+        .dark .ck.ck-toolbar {
+            background-color: #111827;
+            border-color: #374151;
+        }
+        .dark .ck.ck-button {
+            color: #d1d5db;
+        }
+        .dark .ck.ck-button:hover {
+            background-color: #374151;
+        }
     </style>
 @endpush
 
 @section('dashboard_content')
 @php
-    $profile = $user->profile;
+    $profile   = $user->profile;
+    $countries = $countries ?? collect();
+    $states    = $states    ?? collect();
+    $cities    = $cities    ?? collect();
+
+    $selectedCountry = old('country_id', $profile->country_id ?? '');
+    $selectedState   = old('state_id',   $profile->state_id   ?? '');
+    $selectedCity    = old('city_id',    $profile->city_id    ?? '');
 @endphp
 
 <div class="mx-auto max-w-5xl">
@@ -122,7 +150,7 @@
 
                         <div class="pb-1">
                             <h2 class="text-xl font-bold text-gray-900 dark:text-white">
-                                {{ $user->first_name }} {{ $user->last_name }}
+                                {{ $profile->first_name }} {{ $profile->last_name }}
                             </h2>
                             <p class="text-sm text-gray-500 dark:text-gray-400">{{ $user->email }}</p>
                         </div>
@@ -151,7 +179,7 @@
                         Username <span class="text-red-500">*</span>
                     </label>
                     <input id="username" type="text" name="username"
-                           value="{{ old('username', $user->username) }}" required
+                           value="{{ old('username', $user->username) }}" 
                            class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
                                   @error('username') border-red-500 focus:border-red-500 focus:ring-red-500/30
                                   @else border-gray-300 focus:border-indigo-500 dark:border-gray-600
@@ -167,7 +195,7 @@
                         Email Address <span class="text-red-500">*</span>
                     </label>
                     <input id="email" type="email" name="email"
-                           value="{{ old('email', $user->email) }}" required
+                           value="{{ old('email', $user->email) }}" 
                            class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
                                   @error('email') border-red-500 focus:border-red-500 focus:ring-red-500/30
                                   @else border-gray-300 focus:border-indigo-500 dark:border-gray-600
@@ -183,17 +211,26 @@
                         First Name <span class="text-red-500">*</span>
                     </label>
                     <input id="first_name" type="text" name="first_name"
-                           value="{{ old('first_name', $user->first_name) }}" required
+                           value="{{ old('first_name', $profile->first_name) }}" 
+                           class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                </div>
+                {{-- Middle name --}}
+                <div>
+                    <label for="last_name" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Middle Name 
+                    </label>
+                    <input id="middle_name" type="text" name="middle_name"
+                           value="{{ old('middle_name', $profile->middle_name) }}" 
                            class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
                 </div>
 
                 {{-- Last name --}}
                 <div>
                     <label for="last_name" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Last Name <span class="text-red-500">*</span>
+                        Last Name 
                     </label>
                     <input id="last_name" type="text" name="last_name"
-                           value="{{ old('last_name', $user->last_name) }}" required
+                           value="{{ old('last_name', $profile->last_name) }}" 
                            class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
                 </div>
             </div>
@@ -227,27 +264,78 @@
                 </div>
 
                 {{-- Gender --}}
+                @php
+                    $genders = [
+                        'male'   => ['label' => 'Male',   'icon' => 'ri-men-line'],
+                        'female' => ['label' => 'Female', 'icon' => 'ri-women-line'],
+                        'other'  => ['label' => 'Other',  'icon' => 'ri-user-line'],
+                    ];
+                    $current = old('gender', $profile->gender ?? '');
+                @endphp
+
                 <div class="sm:col-span-2">
                     <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Gender</label>
-                    <div class="flex flex-wrap gap-3">
-                        @foreach (['male' => 'Male', 'female' => 'Female', 'other' => 'Other'] as $val => $label)
-                            <label class="inline-flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors
-                                          peer-checked:border-indigo-500 peer-checked:bg-indigo-50
-                                          {{ old('gender', $profile->gender ?? '') === $val ? 'border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' : 'border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300' }}">
-                                <input type="radio" name="gender" value="{{ $val }}" class="sr-only"
-                                       {{ old('gender', $profile->gender ?? '') === $val ? 'checked' : '' }}>
-                                {{ $label }}
+
+                    <div class="grid grid-cols-3 gap-2.5">
+                        @foreach ($genders as $val => $g)
+                            <label class="group relative cursor-pointer">
+                                <input type="radio" name="gender" value="{{ $val }}" class="peer sr-only"
+                                    {{ $current === $val ? 'checked' : '' }}>
+
+                                {{-- Card --}}
+                                <div class="flex items-center justify-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-3 py-2.5 transition-all duration-200
+                                            hover:border-gray-300 hover:shadow-sm
+                                            peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:shadow-sm
+                                            peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500 peer-focus-visible:ring-offset-1
+                                            dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600
+                                            dark:peer-checked:border-indigo-500 dark:peer-checked:bg-indigo-900/30
+                                            dark:peer-focus-visible:ring-offset-gray-900">
+
+                                    {{-- Icon + Text side by side in one span --}}
+                                    <span class="inline-flex items-center gap-2 text-xs font-medium text-gray-700 transition-colors
+                                                peer-checked:text-indigo-700
+                                                dark:text-gray-200 dark:peer-checked:text-indigo-300">
+                                        <i class="{{ $g['icon'] }} text-base leading-none text-gray-500 transition-colors
+                                                peer-checked:text-indigo-600
+                                                dark:text-gray-400 dark:peer-checked:text-indigo-300"></i>
+                                        {{ $g['label'] }}
+                                    </span>
+                                </div>
+
+                                {{-- Check badge --}}
+                                <span class="pointer-events-none absolute right-1.5 top-1.5 hidden h-4 w-4 items-center justify-center rounded-full bg-indigo-500 text-white shadow
+                                            peer-checked:flex">
+                                    <i class="ri-check-line text-[10px] leading-none"></i>
+                                </span>
                             </label>
                         @endforeach
                     </div>
+
+                    @error('gender')
+                        <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- Bio --}}
                 <div class="sm:col-span-2">
-                    <label for="bio" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Bio</label>
-                    <textarea id="bio" name="bio" rows="3" maxlength="1000"
+                    <label for="bio" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Bio
+                    </label>
+
+                    <textarea id="bio"
+                              name="bio"
+                              rows="6"
+                              maxlength="1000"
                               placeholder="Tell us a bit about yourself..."
-                              class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white">{{ old('bio', $profile->bio ?? '') }}</textarea>
+                              class="js-rich-editor block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white">{{ old('bio', $profile->bio ?? '') }}</textarea>
+
+                    @error('bio')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        <span id="bio-counter">0</span> / 1000 characters
+                    </p>
                 </div>
             </div>
         </div>
@@ -265,35 +353,64 @@
             <div class="grid grid-cols-1 gap-6 p-6 sm:grid-cols-2">
                 {{-- Country --}}
                 <div>
-                    <label for="country_id" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Country</label>
-                    <select id="country_id" name="country_id" class="js-select w-full">
+                    <label for="country_id" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Country
+                    </label>
+                    <select id="country_id"
+                            name="country_id"
+                            class="js-select w-full @error('country_id') border-red-500 @enderror"
+                            data-dependent-target="state_id">
                         <option value="">— Select country —</option>
-                        @foreach ($countries as $c)
-                            <option value="{{ $c->id }}" @selected(old('country_id', $profile->country_id ?? '') == $c->id)>{{ $c->name }}</option>
+                        @foreach ($countries as $country)
+                            <option value="{{ $country->id }}">
+                                {{ $country->name }}
+                            </option>
                         @endforeach
                     </select>
+                    @error('country_id')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- State --}}
                 <div>
-                    <label for="state_id" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">State</label>
-                    <select id="state_id" name="state_id" class="js-select w-full">
+                    <label for="state_id" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        State
+                    </label>
+                    <select id="state_id" name="state_id"
+                            class="js-select w-full @error('state_id') border-red-500 @enderror"
+                            data-dependent-target="city_id"
+                            data-selected="{{ $selectedState }}">
                         <option value="">— Select state —</option>
-                        @foreach ($states as $s)
-                            <option value="{{ $s->id }}" @selected(old('state_id', $profile->state_id ?? '') == $s->id)>{{ $s->name }}</option>
+                        @foreach ($states as $state)
+                            <option value="{{ $state->id }}">
+                                {{ $state->name }}
+                            </option>
                         @endforeach
                     </select>
+                    @error('state_id')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- City --}}
                 <div>
-                    <label for="city_id" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">City</label>
-                    <select id="city_id" name="city_id" class="js-select w-full">
+                    <label for="city_id" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        City
+                    </label>
+                    <select id="city_id" name="city_id"
+                            class="js-select w-full @error('city_id') border-red-500 @enderror"
+                            data-selected="{{ $selectedCity }}">
                         <option value="">— Select city —</option>
-                        @foreach ($cities as $c)
-                            <option value="{{ $c->id }}" @selected(old('city_id', $profile->city_id ?? '') == $c->id)>{{ $c->name }}</option>
+                        @foreach ($cities as $city)
+                            <option value="{{ $city->id }}">
+                                {{ $city->name }}
+                            </option>
                         @endforeach
                     </select>
+                    @error('city_id')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- Zip --}}
@@ -306,10 +423,18 @@
 
                 {{-- Address --}}
                 <div class="sm:col-span-2">
-                    <label for="address" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Street Address</label>
-                    <input id="address" type="text" name="address"
-                           value="{{ old('address', $profile->address ?? '') }}" placeholder="123 Main St"
+                    <label for="address" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Street Address
+                    </label>
+                    <input id="address"
+                           type="text"
+                           name="address"
+                           value="{{ old('address', $profile->address ?? '') }}"
+                           placeholder="123 Main St"
                            class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                    @error('address')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
         </div>
@@ -323,13 +448,15 @@
                     Social Links
                 </h2>
             </div>
-
+            @php
+                $socialLinks = [
+                    'website'  => ['label' => 'Website',     'placeholder' => 'https://example.com',       'icon' => 'M12 21a9 9 0 100-18 9 9 0 000 18zM3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18 15 15 0 010-18z'],
+                    'linkedin' => ['label' => 'LinkedIn',    'placeholder' => 'https://linkedin.com/in/…', 'icon' => 'M4.98 3.5a2.5 2.5 0 11.02 5 2.5 2.5 0 01-.02-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.4c0-1.3-.03-3-1.83-3-1.83 0-2.1 1.43-2.1 2.9V21H9z'],
+                    'twitter'  => ['label' => 'Twitter / X', 'placeholder' => 'https://x.com/…',            'icon' => 'M18.9 2H22l-7 8 8.2 12h-6.4l-5-7.3L5.9 22H2.8l7.5-8.6L2.3 2h6.6l4.5 6.6L18.9 2z'],
+                ];
+            @endphp
             <div class="grid grid-cols-1 gap-6 p-6">
-                @foreach ([
-                    'website'  => ['label' => 'Website',  'placeholder' => 'https://example.com',      'icon' => 'M12 21a9 9 0 100-18 9 9 0 000 18zM3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18 15 15 0 010-18z'],
-                    'linkedin' => ['label' => 'LinkedIn', 'placeholder' => 'https://linkedin.com/in/…', 'icon' => 'M4.98 3.5a2.5 2.5 0 11.02 5 2.5 2.5 0 01-.02-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.4c0-1.3-.03-3-1.83-3-1.83 0-2.1 1.43-2.1 2.9V21H9z'],
-                    'twitter'  => ['label' => 'Twitter / X', 'placeholder' => 'https://x.com/…',        'icon' => 'M18.9 2H22l-7 8 8.2 12h-6.4l-5-7.3L5.9 22H2.8l7.5-8.6L2.3 2h6.6l4.5 6.6L18.9 2z'],
-                ] as $field => $meta)
+                @foreach ($socialLinks as $field => $meta)
                     <div>
                         <label for="{{ $field }}" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                             {{ $meta['label'] }}
@@ -429,37 +556,241 @@
 </div>
 @endsection
 
-@push('dashboard_script')
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script>
-        $(function () {
-            // Init Select2 on all .js-select dropdowns
-            $('.js-select').select2({
+
+
+
+<script>
+(function () {
+    'use strict';
+
+    function init() {
+        // ---------- Select2 ----------
+        if (window.jQuery && jQuery.fn.select2) {
+            jQuery('.js-select').select2({
                 placeholder: 'Select an option',
                 allowClear: true,
                 width: '100%',
             });
+        }
+
+        // ---------- Country → State → City cascade ----------
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+
+        function rebuild(target, rows, placeholder, selected) {
+            if (!target) return;
+            let html = `<option value="">${placeholder}</option>`;
+            for (const row of rows) {
+                const sel = String(selected) === String(row.id) ? ' selected' : '';
+                html += `<option value="${row.id}"${sel}>${row.name}</option>`;
+            }
+            target.innerHTML = html;
+            if (window.jQuery && jQuery.fn.select2) {
+                jQuery(target).trigger('change.select2');
+            }
+        }
+
+        async function loadOptions(source, targetId, selected) {
+            const target = document.getElementById(targetId);
+            if (!target) return;
+
+            const placeholder = targetId === 'state_id'
+                ? '— Select state —'
+                : '— Select city —';
+
+            if (!source.value) {
+                rebuild(target, [], placeholder, null);
+                return;
+            }
+
+            target.innerHTML = `<option value="">— Loading… —</option>`;
+            if (window.jQuery && jQuery.fn.select2) {
+                jQuery(target).trigger('change.select2');
+            }
+
+            try {
+                const url = source.dataset.dependentUrl;
+                const res = await fetch(
+                    `${url}?${source.name}=${encodeURIComponent(source.value)}`,
+                    {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrf,
+                        },
+                    }
+                );
+                if (!res.ok) throw new Error(res.statusText);
+                const rows = await res.json();
+                rebuild(target, rows, placeholder, selected);
+            } catch (err) {
+                console.error('[cascade] failed:', err);
+                target.innerHTML = `<option value="">— Failed to load —</option>`;
+                if (window.jQuery && jQuery.fn.select2) {
+                    jQuery(target).trigger('change.select2');
+                }
+            }
+        }
+
+        document.querySelectorAll('[data-dependent-target]').forEach((source) => {
+            const targetId = source.dataset.dependentTarget;
+            const target   = document.getElementById(targetId);
+
+            source.addEventListener('change', () => {
+                const placeholder = targetId === 'state_id'
+                    ? '— Select state —'
+                    : '— Select city —';
+                if (target) {
+                    rebuild(target, [], placeholder, null);
+                    const grandchildId = target.dataset.dependentTarget;
+                    if (grandchildId) {
+                        const gc = document.getElementById(grandchildId);
+                        if (gc) {
+                            rebuild(gc, [], '— Select city —', null);
+                        }
+                    }
+                }
+                loadOptions(source, targetId, null);
+            });
+
+            if (source.value && target && target.options.length <= 1) {
+                loadOptions(source, targetId, target.dataset.selected);
+            }
         });
 
-        // Avatar live preview
+        // ---------- Rich Text Editor (TinyMCE OR CKEditor) ----------
+        const bioTextarea = document.querySelector('textarea.js-rich-editor');
+        const bioCounter  = document.getElementById('bio-counter');
+
+        function updateCounter(text) {
+            if (!bioCounter) return;
+            bioCounter.textContent = text.length;
+            bioCounter.classList.toggle('text-red-600', text.length > 1000);
+            bioCounter.classList.toggle('font-semibold', text.length > 1000);
+        }
+
+        // Prefer CKEditor if available, otherwise fall back to TinyMCE
+        if (bioTextarea && window.ClassicEditor) {
+            const isDark = document.documentElement.classList.contains('dark');
+            const initialContent = bioTextarea.value || '';
+
+            ClassicEditor
+                .create(bioTextarea, {
+                    toolbar: [
+                        'undo', 'redo', '|',
+                        'bold', 'italic', 'underline', '|',
+                        'bulletedList', 'numberedList', '|',
+                        'link', 'removeFormat', '|',
+                        'codeBlock',
+                    ],
+                    placeholder: 'Tell us a bit about yourself...',
+                    initialData: initialContent,
+                })
+                .then(editor => {
+                    // Live character counter
+                    editor.model.document.on('change:data', () => {
+                        const text = editor.getData().replace(/<[^>]*>/g, '');
+                        updateCounter(text);
+                    });
+
+                    // Initialize counter on load
+                    updateCounter(initialContent.replace(/<[^>]*>/g, ''));
+
+                    // Enforce 1000 character limit on submit
+                    const form = bioTextarea.closest('form');
+                    if (form) {
+                        form.addEventListener('submit', (e) => {
+                            const text = editor.getData().replace(/<[^>]*>/g, '');
+                            if (text.length > 1000) {
+                                e.preventDefault();
+                                alert('Bio cannot exceed 1000 characters.');
+                                return false;
+                            }
+                            // Sync editor content back to the textarea (in case
+                            // any code path submits the raw textarea value)
+                            bioTextarea.value = editor.getData();
+                        });
+                    }
+                })
+                .catch(err => {
+                    console.error('[CKEditor] init failed:', err);
+                    // Fallback to TinyMCE if CKEditor fails
+                    initTinyMCE();
+                });
+        } else if (bioTextarea && window.tinymce) {
+            initTinyMCE();
+        }
+
+        function initTinyMCE() {
+            if (!window.tinymce) return;
+            const isDark = document.documentElement.classList.contains('dark');
+
+            tinymce.init({
+                selector: 'textarea.js-rich-editor',
+                height: 260,
+                menubar: false,
+                branding: false,
+                promotion: false,
+                plugins: 'lists link autolink code charcount paste',
+                toolbar: 'undo redo | bold italic underline | bullist numlist | link | removeformat | code',
+                skin: isDark ? 'oxide-dark' : 'oxide',
+                content_css: isDark ? 'dark' : 'default',
+
+                setup(editor) {
+                    editor.on('input change keyup setcontent', () => {
+                        const text = editor.getContent({ format: 'text' });
+                        updateCounter(text);
+                    });
+
+                    editor.on('submit', () => {
+                        const text = editor.getContent({ format: 'text' });
+                        if (text.length > 1000) {
+                            editor.setContent(text.slice(0, 1000));
+                        }
+                    });
+                },
+            });
+        }
+
+        // ---------- Avatar live preview ----------
         document.getElementById('avatarInput')?.addEventListener('change', function (e) {
             const file = e.target.files?.[0];
-            if (! file) return;
+            if (!file) return;
             const reader = new FileReader();
-            reader.onload = ev => document.getElementById('avatarPreview').src = ev.target.result;
+            reader.onload = ev => {
+                const img = document.getElementById('avatarPreview');
+                if (img) img.src = ev.target.result;
+            };
             reader.readAsDataURL(file);
         });
 
-        // Password visibility toggles
+        // ---------- Password visibility toggles ----------
         document.querySelectorAll('[data-toggle-password]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const input = document.getElementById(btn.dataset.togglePassword);
-                if (! input) return;
+                if (!input) return;
+
                 const isHidden = input.type === 'password';
                 input.type = isHidden ? 'text' : 'password';
+
                 btn.querySelector('[data-eye-open]')?.classList.toggle('hidden', isHidden);
-                btn.querySelector('[data-eye-closed]')?.classList.toggle('hidden', ! isHidden);
+                btn.querySelector('[data-eye-closed]')?.classList.toggle('hidden', !isHidden);
             });
         });
-    </script>
-@endpush
+
+        document.querySelectorAll('input[name="gender"]').forEach((radio) => {
+            radio.addEventListener('change', () => {
+                document.querySelectorAll('input[name="gender"]').forEach((r) => {
+                    r.dispatchEvent(new Event('input', { bubbles: true }));
+                });
+            });
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+</script>
+
+    

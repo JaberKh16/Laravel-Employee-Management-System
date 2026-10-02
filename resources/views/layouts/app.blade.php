@@ -22,6 +22,8 @@
     {{-- Scripts --}}
     <script src="{{ mix('js/app.js') }}" defer></script>
     <script src="{{ mix('js/script.js') }}" defer></script>
+
+   
 </head>
 <body class="antialiased bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
 
@@ -44,7 +46,7 @@
                         <svg class="w-7 h-7 text-blue-600 dark:text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM8 7a1 1 0 112 0 1 1 0 01-2 0zm0 4a1 1 0 112 0v4a1 1 0 11-2 0v-4z"/>
                         </svg>
-                        {{ config('app.name', 'Laravel') }}
+                        {{ config('app.name', 'Office Management System') }}
                     </a>
                 </div>
 
@@ -199,6 +201,8 @@
 
     {{-- Main content --}}
     <main id="main-content" class="py-6">
+
+        @include('components.sweet-alert')
         @yield('content')
     </main>
 

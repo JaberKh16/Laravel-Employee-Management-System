@@ -8,23 +8,15 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 
 class CityFactory extends Factory
 {
-    /**
-     * The name of the factory's corresponding model.
-     *
-     * @var string
-     */
+  
     protected $model = City::class;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array
-     */
     public function definition()
     {
         return [
-            'state_id' => State::select('id')->get()->random()->id,
-            'name' => $this->faker->city,
+            'state_id' => State::inRandomOrder()->value('id')
+                ?? State::factory(),   // fallback if no states exist
+            'name' => $this->faker->unique()->city(),
             'description' => $this->faker->sentence(12),
         ];
     }

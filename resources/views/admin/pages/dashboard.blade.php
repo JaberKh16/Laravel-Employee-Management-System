@@ -166,15 +166,19 @@
         </div>
     </section>
 
+    {{-- Sweet Alert --}}
+    @include('components.sweet-alert')
+
     {{-- Stat Cards --}}
     @include('admin.partials._stats-cards')
+
 
 @endsection
 
 
 {{-- ============================================================
      SCRIPTS
-     ============================================================ --}}
+============================================================ --}}
 @push('dashboard_script')
     <script>
         document.addEventListener('DOMContentLoaded', () => {

@@ -1,5 +1,5 @@
 <script>
-            @foreach( session('toasts', collect())->toArray() as $toast)
+ @foreach( session('toasts', collect())->toArray() as $toast)
     var options = {
             title: '{{ $toast['title'] }}',
             message: '{{ $toast['message'] }}',
@@ -18,7 +18,7 @@
 
     show(type, options);
 
-    @endforeach
+@endforeach
     function show(type, options) {
         if (type === 'info'){
             iziToast.info(options);

@@ -15,12 +15,8 @@
     {{-- Anti-FOUC (inline, must run before CSS) --}}
     @include('admin.partials.js.anti-fouc')
 
-    {{-- Fonts --}}
-    <link rel="dns-prefetch" href="//fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    {{-- Styles --}}
-    <link rel="stylesheet" href="{{ mix('css/app.css') }}">
+    {{-- CSS Dashboard --}}
+    @include('admin.partials._dashboard_css')
 
     @stack('dashboard_style')
 
@@ -102,6 +98,7 @@
 
     @include('admin.partials.js.scroll-top')
 
+    @include('admin.partials._dashboard_scripts')
     @stack('scripts')
 </body>
 </html>

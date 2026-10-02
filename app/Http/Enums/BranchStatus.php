@@ -9,6 +9,26 @@ enum BranchStatus: string
     case Closed           = 'closed';
     case UnderMaintenance = 'under_maintenance';
 
+    /**
+     * All backed values — used by migrations & validation rules.
+     *
+     * @return string[]
+     */
+    public static function values(): array
+    {
+        return array_column(self::cases(), 'value');
+    }
+
+    /**
+     * Statuses that count as "operational".
+     *
+     * @return BranchStatus[]
+     */
+    public static function operational(): array
+    {
+        return [self::Active, self::UnderMaintenance];
+    }
+
     public function label(): string
     {
         return match ($this) {
@@ -22,34 +42,10 @@ enum BranchStatus: string
     public function color(): string
     {
         return match ($this) {
-            self::Active           => 'success',
-            self::Inactive         => 'secondary',
-            self::Closed           => 'dark',
-            self::UnderMaintenance => 'warning',
+            self::Active           => 'emerald',
+            self::Inactive         => 'gray',
+            self::Closed           => 'red',
+            self::UnderMaintenance => 'amber',
         };
-    }
-
-    public static function operational(): array
-    {
-        return [self::Active, self::UnderMaintenance];
-    }
-
-    public static function nonOperational(): array
-    {
-        return [self::Inactive, self::Closed];
-    }
-
-    public static function values(): array
-    {
-        return array_column(self::cases(), 'value');
-    }
-
-    public static function options(): array
-    {
-        $options = [];
-        foreach (self::cases() as $case) {
-            $options[$case->value] = $case->label();
-        }
-        return $options;
     }
 }

@@ -7,24 +7,24 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 
 class CountryFactory extends Factory
 {
-    /**
-     * The name of the factory's corresponding model.
-     *
-     * @var string
-     */
     protected $model = Country::class;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array
-     */
-    public function definition()
+    public function definition(): array
     {
         return [
-            'country_code' => $this->faker->countryCode,
-            'name' => $this->faker->country,
-            'description' => $this->faker->sentence(12),
+            'country_code' => strtoupper($this->faker->unique()->countryCode),
+            'name'         => $this->faker->unique()->country,
+            'description'  => $this->faker->sentence(12),
         ];
+    }
+
+    /** A named state for tests. */
+    public function bangladesh(): static
+    {
+        return $this->state(fn () => [
+            'country_code' => 'BD',
+            'name'         => 'Bangladesh',
+            'description'  => 'South Asian country.',
+        ]);
     }
 }

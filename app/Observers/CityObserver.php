@@ -7,58 +7,46 @@ use Illuminate\Support\Facades\Log;
 
 class CityObserver
 {
-    /**
-     * Handle the City "created" event.
-     *
-     * @param  \App\Models\City  $city
-     * @return void
-     */
-    public function created(City $city)
+    public function created(City $city): void
     {
-        Log::info("New City".$city."Data Inserted by ".auth()->user()->username);
+        $this->log('created', $city);
+    }
+
+    public function updated(City $city): void
+    {
+        $this->log('updated', $city, [
+            'changes' => $city->getChanges(),
+            'original' => $city->getOriginal(),
+        ]);
+    }
+
+    public function deleted(City $city): void
+    {
+        $this->log('deleted', $city);
+    }
+
+    public function restored(City $city): void
+    {
+        $this->log('restored', $city);
+    }
+
+    public function forceDeleted(City $city): void
+    {
+        $this->log('forceDeleted', $city);
     }
 
     /**
-     * Handle the City "updated" event.
-     *
-     * @param  \App\Models\City  $city
-     * @return void
+     * Write a structured audit log entry.
      */
-    public function updated(City $city)
+    protected function log(string $event, City $city, array $extra = []): void
     {
-        Log::info("City".$city."Data Updated by ".auth()->user()->username);
-    }
-
-    /**
-     * Handle the City "deleted" event.
-     *
-     * @param  \App\Models\City  $city
-     * @return void
-     */
-    public function deleted(City $city)
-    {
-        Log::info("City".$city."Data Deleted by ".auth()->user()->username);
-    }
-
-    /**
-     * Handle the City "restored" event.
-     *
-     * @param  \App\Models\City  $city
-     * @return void
-     */
-    public function restored(City $city)
-    {
-        //
-    }
-
-    /**
-     * Handle the City "force deleted" event.
-     *
-     * @param  \App\Models\City  $city
-     * @return void
-     */
-    public function forceDeleted(City $city)
-    {
-        //
+        Log::info("City {$event}", array_merge([
+            'id' => $city->id,
+            'name' => $city->name,
+            'state_id' => $city->state_id,
+            'actor_id' => auth()->id(),
+            'actor_name' => optional(auth()->user())->username ?? 'system',
+            'ip' => request()->ip(),
+        ], $extra));
     }
 }

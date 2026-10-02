@@ -1,6 +1,6 @@
 {{-- Sidebar / Dock --}}
 @php
-    $isSystemActive  = request()->routeIs('countries.*', 'states.*', 'cities.*', 'departments.*');
+    $isSystemActive  = request()->routeIs('countries.*', 'states.*', 'cities.*', 'departments.*',  'branches.*');
     $isUsersActive   = request()->routeIs('users.*', 'roles.*', 'permissions.*');
     $isEmployeeActive = request()->is('employees*');
 @endphp
@@ -139,6 +139,7 @@
                             'states.index'      => __('State'),
                             'cities.index'      => __('City'),
                             'departments.index' => __('Department'),
+                            'branches.index'    => __('Branch'),
                         ] as $route => $label)
                             @php $active = request()->routeIs($route); @endphp
                             <li>

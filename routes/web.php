@@ -1,15 +1,16 @@
 <?php
 
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Backend\BranchController;
 use App\Http\Controllers\Backend\CityController;
-use App\Http\Controllers\Backend\RoleController;
-use App\Http\Controllers\Backend\UserController;
-use App\Http\Controllers\Backend\StateController;
 use App\Http\Controllers\Backend\CountryController;
 use App\Http\Controllers\Backend\DepartmentController;
 use App\Http\Controllers\Backend\PermissionController;
+use App\Http\Controllers\Backend\RoleController;
+use App\Http\Controllers\Backend\StateController;
+use App\Http\Controllers\Backend\UserController;
+use App\Http\Controllers\HomeController;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -33,14 +34,16 @@ Route::get('/generate-report', [HomeController::class, 'generateReport'])->name(
 Route::middleware(['auth'])->group(function () {
     Route::prefix('admin')->group(function () {
         Route::resource('users', UserController::class);
-        Route::get('users/profile', [UserController::class, 'profile'])->name('users.profile');
-        Route::put('users/profile', [UserController::class, 'profileUpdate'])->name('users.profile.update');
+        Route::get('profile/index', [UserController::class, 'profile'])->name('users.profile');
+        Route::put('profile/update', [UserController::class, 'profileUpdate'])->name('users.profile.update');
         Route::resource('countries', CountryController::class);
         Route::resource('cities', CityController::class);
         Route::resource('states', StateController::class);
+        Route::resource('branches', BranchController::class);
         Route::resource('departments', DepartmentController::class);
         Route::resource('permissions', PermissionController::class);
         Route::resource('roles', RoleController::class);
+
     });
     Route::get('{any}', function () {
         return view('admin.pages.Employee.index');

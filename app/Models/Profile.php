@@ -29,7 +29,7 @@ class Profile extends Model
         'city_id',
         'website',
         'linkedin',
-        'twitter'
+        'twitter',
     ];
 
     protected $casts = [
@@ -60,19 +60,15 @@ class Profile extends Model
     // ACCESSORS
     // ============================================================
 
-    /**
-     * Full name — "John Doe" (or "John" if only first is set).
-     * Usage: $profile->full_name
-     */
+
     public function getFullNameAttribute(): string
     {
-        return trim("{$this->first_name} {$this->last_name}");
+        $first = $this->first_name ?? $this->user?->first_name ?? '';
+        $last = $this->last_name ?? $this->user?->last_name ?? '';
+        return trim("{$first} {$last}");
     }
 
-    /**
-     * Initials — "JD". Useful for avatars.
-     * Usage: $profile->initials
-     */
+
     public function getInitialsAttribute(): string
     {
         $first = mb_substr((string) $this->first_name, 0, 1);
@@ -81,11 +77,7 @@ class Profile extends Model
         return mb_strtoupper($first . $last) ?: 'U';
     }
 
-    /**
-     * Avatar URL — falls back to ui-avatars with the profile's name,
-     * then to the username if names aren't set.
-     * Usage: $profile->avatar_url
-     */
+
     public function getAvatarUrlAttribute(): string
     {
         if (!$this->avatar) {

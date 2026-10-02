@@ -35,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        // all observers
         City::observe(CityObserver::class);
         Country::observe(CountryObserver::class);
         State::observe(StateObserver::class);

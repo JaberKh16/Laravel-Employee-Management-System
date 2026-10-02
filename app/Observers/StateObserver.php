@@ -7,58 +7,44 @@ use Illuminate\Support\Facades\Log;
 
 class StateObserver
 {
-    /**
-     * Handle the State "created" event.
-     *
-     * @param  \App\Models\State  $state
-     * @return void
-     */
-    public function created(State $state)
+    public function created(State $state): void
     {
-        Log::info("New state".$state."Data Inserted by ".auth()->user()->username);
+        $this->log('created', $state);
     }
 
-    /**
-     * Handle the State "updated" event.
-     *
-     * @param  \App\Models\State  $state
-     * @return void
-     */
-    public function updated(State $state)
+    public function updated(State $state): void
     {
-        Log::info("State".$state."Data Updated by ".auth()->user()->username);
+        $this->log('updated', $state, [
+            'changes' => $state->getChanges(),
+            'original' => $state->getOriginal(),
+        ]);
     }
 
-    /**
-     * Handle the State "deleted" event.
-     *
-     * @param  \App\Models\State  $state
-     * @return void
-     */
-    public function deleted(State $state)
+    public function deleted(State $state): void
     {
-        Log::info("State".$state."Data Deleted by ".auth()->user()->username);
+        $this->log('deleted', $state);
     }
 
-    /**
-     * Handle the State "restored" event.
-     *
-     * @param  \App\Models\State  $state
-     * @return void
-     */
-    public function restored(State $state)
+    public function restored(State $state): void
     {
-        //
+        $this->log('restored', $state);
     }
 
-    /**
-     * Handle the State "force deleted" event.
-     *
-     * @param  \App\Models\State  $state
-     * @return void
-     */
-    public function forceDeleted(State $state)
+    public function forceDeleted(State $state): void
     {
-        //
+        $this->log('forceDeleted', $state);
+    }
+
+    protected function log(string $event, State $state, array $extra = []): void
+    {
+        Log::info("State {$event}", array_merge([
+            'id' => $state->id,
+            'name' => $state->name,
+            'state_code' => $state->state_code,
+            'country_id' => $state->country_id,
+            'actor_id' => auth()->id(),
+            'actor_name' => optional(auth()->user())->username ?? 'system',
+            'ip' => request()->ip(),
+        ], $extra));
     }
 }
