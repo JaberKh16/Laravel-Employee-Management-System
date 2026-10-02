@@ -7,7 +7,28 @@
 
 @section('dashboard_content')
 
-    <div class="mx-auto max-w-4xl">
+    <div class="mx-auto max-w-5xl">
+
+        {{-- ============================================================
+             FLASH MESSAGES
+             ============================================================ --}}
+        @if (session('success'))
+            <div class="mb-6 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 shadow-sm dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
+                <svg class="mt-0.5 h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span>{{ session('success') }}</span>
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div class="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-sm dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
+                <svg class="mt-0.5 h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+                </svg>
+                <span>{{ session('error') }}</span>
+            </div>
+        @endif
 
         {{-- ============================================================
              PAGE HEADER
@@ -81,6 +102,9 @@
                         <tr>
                             <th scope="col" class="w-16 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">#</th>
                             <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Name</th>
+                            <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Description</th>
+                            <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Floor</th>
+                            <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
                             <th scope="col" class="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Actions</th>
                         </tr>
                     </thead>
@@ -105,6 +129,117 @@
                                         <span class="text-sm font-semibold text-gray-900 dark:text-white">
                                             {{ $department->name }}
                                         </span>
+                                    </div>
+                                </td>
+
+                                {{-- Description --}}
+                                <td class="px-4 py-3.5 text-sm text-gray-600 dark:text-gray-300">
+                                    @if ($department->description)
+                                        <span title="{{ $department->description }}"
+                                              class="line-clamp-2 block max-w-xs">
+                                            {{ \Illuminate\Support\Str::limit($department->description, 60) }}
+                                        </span>
+                                    @else
+                                        <span class="text-xs italic text-gray-400 dark:text-gray-500">—</span>
+                                    @endif
+                                </td>
+
+                                {{-- Floor --}}
+                                <td class="whitespace-nowrap px-4 py-3.5 text-sm text-gray-600 dark:text-gray-300">
+                                    @if ($department->floor)
+                                        <span class="inline-flex items-center gap-1.5 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+                                            <svg class="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18"/>
+                                            </svg>
+                                            {{ $department->floor }}
+                                        </span>
+                                    @else
+                                        <span class="text-xs italic text-gray-400 dark:text-gray-500">—</span>
+                                    @endif
+                                </td>
+
+                                {{-- Status chip (interactive dropdown) --}}
+                                <td class="whitespace-nowrap px-4 py-3.5">
+                                    @php
+                                        $status = $department->status;
+                                        $label  = $status?->label() ?? 'Unknown';
+                                        $color  = $status?->color() ?? 'gray';
+                                        $classes = match ($color) {
+                                            'emerald' => 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300',
+                                            'amber'   => 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300',
+                                            'red'     => 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/60 dark:text-red-300',
+                                            default   => 'border-gray-200 bg-gray-100 text-gray-600 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-300',
+                                        };
+                                    @endphp
+
+                                    <div class="relative inline-block text-left"
+                                         data-status-widget
+                                         data-department-id="{{ $department->id }}"
+                                         data-update-url="{{ route('departments.update-status', $department) }}">
+
+                                        {{-- Trigger --}}
+                                        <button type="button"
+                                                data-status-trigger
+                                                title="Change status"
+                                                aria-haspopup="listbox"
+                                                aria-expanded="false"
+                                                class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-all hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:ring-offset-1 dark:focus:ring-offset-gray-900 {{ $classes }}">
+                                            <span data-status-dot class="h-1.5 w-1.5 rounded-full bg-current opacity-80"></span>
+                                            <span data-status-label>{{ $label }}</span>
+                                            <svg class="h-3 w-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                                            </svg>
+                                        </button>
+
+                                        {{-- Dropdown --}}
+                                        <div data-status-menu
+                                             role="listbox"
+                                             class="absolute left-0 top-full z-30 mt-1.5 hidden w-44 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5 dark:border-gray-700 dark:bg-gray-800">
+
+                                            <div class="relative">
+                                                @foreach ($departmentStatus as $option)
+                                                    @php
+                                                        $dotColor = match ($option->color()) {
+                                                            'emerald' => 'bg-emerald-500',
+                                                            'amber'   => 'bg-amber-500',
+                                                            'red'     => 'bg-red-500',
+                                                            default   => 'bg-gray-400',
+                                                        };
+                                                        $isCurrent = $department->status?->value === $option->value;
+                                                    @endphp
+
+                                                    <button type="button"
+                                                            role="option"
+                                                            aria-selected="{{ $isCurrent ? 'true' : 'false' }}"
+                                                            data-status-option="{{ $option->value }}"
+                                                            class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700/60
+                                                                {{ $isCurrent ? 'bg-indigo-50/60 dark:bg-indigo-950/40' : '' }}">
+                                                        <span class="h-2 w-2 rounded-full {{ $dotColor }}"></span>
+                                                        <span class="flex-1">{{ $option->label() }}</span>
+
+                                                        @if ($isCurrent)
+                                                            <svg class="check-icon h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                                                            </svg>
+                                                        @endif
+                                                    </button>
+                                                @endforeach
+
+                                                {{-- Loading overlay --}}
+                                                <div data-status-loading
+                                                     class="absolute inset-0 hidden items-center justify-center bg-white/70 backdrop-blur-[1px] dark:bg-gray-800/70">
+                                                    <svg class="h-4 w-4 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                                    </svg>
+                                                </div>
+                                            </div>
+
+                                            {{-- Error --}}
+                                            <div data-status-error
+                                                 class="hidden border-t border-red-100 bg-red-50 px-3 py-2 text-[11px] font-medium text-red-600 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400">
+                                            </div>
+                                        </div>
                                     </div>
                                 </td>
 
@@ -145,7 +280,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="px-4 py-16 text-center">
+                                <td colspan="6" class="px-4 py-16 text-center">
                                     <div class="mx-auto flex max-w-sm flex-col items-center gap-3">
                                         <span class="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500">
                                             <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
@@ -207,11 +342,9 @@
 @endsection
 
 @push('dashboard_script')
-    {{-- DataTables JS kept as requested --}}
-    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
     <script>
         // ============================================================
-        // Delete confirm helper — the delete buttons call this
+        // Delete confirm helper
         // ============================================================
         window.deleteData = function (id) {
             if (! confirm('Delete this department? This action cannot be undone.')) return;
@@ -220,23 +353,170 @@
         };
 
         // ============================================================
-        // NOTE about the original broken script:
-        //
-        // The original code was:
-        //     $(document).ready(function () {
-        //         $('#userTable').DataTable();   // ← WRONG ID
-        //     });
-        //
-        // Two problems:
-        //   1. This is the DEPARTMENTS page, but it references #userTable
-        //      (copy-pasted from the users view) — the element doesn't exist.
-        //   2. The <table> in this file has NO id attribute at all.
-        //
-        // Fixed by removing the broken call. The DataTables JS file is
-        // still loaded (as requested) so nothing else on the page breaks.
-        //
-        // Server-side pagination via $departments->links() handles
-        // everything DataTables would have done anyway.
+        // Inline status widget
         // ============================================================
+        (function () {
+            'use strict';
+
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.content
+                ?? '{{ csrf_token() }}';
+
+            // Status value → display info.
+            // Keys are STRINGS because dataset values are always strings.
+            const STATUS_META = {
+                @foreach ($departmentStatus as $option)
+                    @php
+                        $classes = match ($option->color()) {
+                            'emerald' => 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300',
+                            'amber'   => 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300',
+                            'red'     => 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/60 dark:text-red-300',
+                            default   => 'border-gray-200 bg-gray-100 text-gray-600 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-300',
+                        };
+                    @endphp
+                    @json((string) $option->value): {
+                        label: @json($option->label()),
+                        classes: @json($classes),
+                    },
+                @endforeach
+            };
+
+            function closeAllMenus(except) {
+                document.querySelectorAll('[data-status-widget]').forEach(widget => {
+                    if (widget === except) return;
+                    widget.querySelector('[data-status-menu]')?.classList.add('hidden');
+                    widget.querySelector('[data-status-trigger]')?.setAttribute('aria-expanded', 'false');
+                });
+            }
+
+            function applyNewStatus(widget, status) {
+                const meta = STATUS_META[String(status)];
+                if (!meta) return;
+
+                const trigger = widget.querySelector('[data-status-trigger]');
+                const labelEl = widget.querySelector('[data-status-label]');
+
+                if (labelEl) labelEl.textContent = meta.label;
+
+                if (trigger) {
+                    Object.values(STATUS_META).forEach(m => {
+                        m.classes.split(' ').forEach(cls => trigger.classList.remove(cls));
+                    });
+                    meta.classes.split(' ').forEach(cls => trigger.classList.add(cls));
+                }
+
+                widget.querySelectorAll('[data-status-option]').forEach(opt => {
+                    const isMatch = String(opt.dataset.statusOption) === String(status);
+                    opt.setAttribute('aria-selected', isMatch ? 'true' : 'false');
+                    opt.classList.toggle('bg-indigo-50/60', isMatch);
+                    opt.classList.toggle('dark:bg-indigo-950/40', isMatch);
+
+                    opt.querySelector('svg.check-icon')?.remove();
+
+                    if (isMatch) {
+                        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                        svg.setAttribute('class', 'check-icon h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400');
+                        svg.setAttribute('fill', 'none');
+                        svg.setAttribute('stroke', 'currentColor');
+                        svg.setAttribute('stroke-width', '2.5');
+                        svg.setAttribute('viewBox', '0 0 24 24');
+                        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        path.setAttribute('stroke-linecap', 'round');
+                        path.setAttribute('stroke-linejoin', 'round');
+                        path.setAttribute('d', 'M4.5 12.75l6 6 9-13.5');
+                        svg.appendChild(path);
+                        opt.appendChild(svg);
+                    }
+                });
+            }
+
+            document.querySelectorAll('[data-status-widget]').forEach(widget => {
+                const trigger = widget.querySelector('[data-status-trigger]');
+                const menu    = widget.querySelector('[data-status-menu]');
+                const loading = widget.querySelector('[data-status-loading]');
+                const errorEl = widget.querySelector('[data-status-error]');
+                const url     = widget.dataset.updateUrl;
+
+                if (!trigger || !menu || !url) return;
+
+                trigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = !menu.classList.contains('hidden');
+                    closeAllMenus(widget);
+                    if (isOpen) {
+                        menu.classList.add('hidden');
+                        trigger.setAttribute('aria-expanded', 'false');
+                    } else {
+                        menu.classList.remove('hidden');
+                        trigger.setAttribute('aria-expanded', 'true');
+                        errorEl?.classList.add('hidden');
+                    }
+                });
+
+                menu.querySelectorAll('[data-status-option]').forEach(opt => {
+                    opt.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+
+                        const newStatus = opt.dataset.statusOption;                 // string
+                        const current   = widget.querySelector('[data-status-option][aria-selected="true"]')
+                                                 ?.dataset.statusOption;                 // string | undefined
+
+                        if (newStatus === current) {
+                            menu.classList.add('hidden');
+                            trigger.setAttribute('aria-expanded', 'false');
+                            return;
+                        }
+
+                        errorEl?.classList.add('hidden');
+                        loading?.classList.remove('hidden');
+                        loading?.classList.add('flex');
+
+                        try {
+                            const res = await fetch(url, {
+                                method: 'PATCH',
+                                headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': csrf,
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                },
+                                // Send status as an integer so the validation rule passes
+                                body: JSON.stringify({ status: parseInt(newStatus, 10) }),
+                            });
+
+                            const data = await res.json().catch(() => ({}));
+
+                            if (!res.ok) {
+                                const msg = data?.errors?.status?.[0]
+                                    ?? data?.message
+                                    ?? `Request failed (${res.status})`;
+                                throw new Error(msg);
+                            }
+
+                            applyNewStatus(widget, newStatus);
+                            menu.classList.add('hidden');
+                            trigger.setAttribute('aria-expanded', 'false');
+
+                        } catch (err) {
+                            console.error('[status-update] failed:', err);
+                            if (errorEl) {
+                                errorEl.textContent = err.message || 'Could not update status.';
+                                errorEl.classList.remove('hidden');
+                            }
+                        } finally {
+                            loading?.classList.add('hidden');
+                            loading?.classList.remove('flex');
+                        }
+                    });
+                });
+
+                menu.addEventListener('click', (e) => e.stopPropagation());
+            });
+
+            document.addEventListener('click', () => closeAllMenus());
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeAllMenus();
+            });
+        })();
     </script>
+
 @endpush

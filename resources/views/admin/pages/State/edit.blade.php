@@ -51,6 +51,60 @@
             <div class="space-y-6 p-6">
 
                 {{-- ============================================================
+                     COUNTRY
+                     ============================================================ --}}
+                <div>
+                    <label for="country_id"
+                           class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Country <span class="text-red-500">*</span>
+                    </label>
+
+                    @php
+                        // Priority:
+                        //   1. old('country_id')           → repopulate after validation error
+                        //   2. $state->country_id          → current DB value
+                        //   3. null                        → show the disabled placeholder
+                        $currentCountryId = old('country_id', $state->country_id);
+                    @endphp
+
+                    <div class="relative">
+                        <select id="country_id"
+                                name="country_id"
+                                required
+                                class="block w-full appearance-none rounded-xl border bg-white px-3.5 py-2.5 pr-10 text-sm text-gray-900 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
+                                       @error('country_id') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                       @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
+                                       @enderror">
+                            <option value="" disabled @selected(! $currentCountryId)>
+                                Select a country
+                            </option>
+                            @foreach ($countries as $country)
+                                <option value="{{ $country->id }}"
+                                        @selected($currentCountryId == $country->id)>
+                                    {{ $country->name }}
+                                </option>
+                            @endforeach
+                        </select>
+
+                        {{-- Custom chevron --}}
+                        <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                            </svg>
+                        </span>
+                    </div>
+
+                    @error('country_id')
+                        <p class="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
+                            <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 00-1 1v3a1 1 0 002 0V7a1 1 0 00-1-1zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>{{ $message }}</span>
+                        </p>
+                    @enderror
+                </div>
+
+                {{-- ============================================================
                      STATE NAME
                      ============================================================ --}}
                 <div>
@@ -83,42 +137,59 @@
                 </div>
 
                 {{-- ============================================================
-                     COUNTRY
+                     STATE CODE
                      ============================================================ --}}
                 <div>
-                    <label for="country_id"
+                    <label for="state_code"
                            class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Country <span class="text-red-500">*</span>
+                        State Code
                     </label>
 
-                    <div class="relative">
-                        <select id="country_id"
-                                name="country_id"
-                                required
-                                class="block w-full appearance-none rounded-xl border bg-white px-3.5 py-2.5 pr-10 text-sm text-gray-900 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
-                                       @error('country_id') border-red-500 focus:border-red-500 focus:ring-red-500/30
-                                       @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
-                                       @enderror">
-                            <option value="" disabled {{ old('country_id', $state->country_id) ? '' : 'selected' }}>
-                                Select a country
-                            </option>
-                            @foreach ($countries as $country)
-                                <option value="{{ $country->id }}"
-                                        @selected(old('country_id', $state->country_id) == $country->id)>
-                                    {{ $country->name }}
-                                </option>
-                            @endforeach
-                        </select>
+                    <input id="state_code"
+                           type="text"
+                           name="state_code"
+                           value="{{ old('state_code', $state->state_code) }}"
+                           autocomplete="off"
+                           maxlength="10"
+                           placeholder="e.g. CA"
+                           class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm uppercase text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
+                                  @error('state_code') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                  @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
+                                  @enderror">
 
-                        {{-- Custom chevron --}}
-                        <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Short code or abbreviation (e.g. CA, TX, NSW). Optional.
+                    </p>
+
+                    @error('state_code')
+                        <p class="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
+                            <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 00-1 1v3a1 1 0 002 0V7a1 1 0 00-1-1zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
                             </svg>
-                        </span>
-                    </div>
+                            <span>{{ $message }}</span>
+                        </p>
+                    @enderror
+                </div>
 
-                    @error('country_id')
+                {{-- ============================================================
+                     DESCRIPTION
+                     ============================================================ --}}
+                <div>
+                    <label for="description"
+                           class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Description
+                    </label>
+
+                    <textarea id="description"
+                              name="description"
+                              rows="3"
+                              placeholder="Optional notes or description about this state"
+                              class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
+                                     @error('description') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                     @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
+                                     @enderror">{{ old('description', $state->description) }}</textarea>
+
+                    @error('description')
                         <p class="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
                             <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                                 <path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 00-1 1v3a1 1 0 002 0V7a1 1 0 00-1-1zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>

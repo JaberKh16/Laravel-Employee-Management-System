@@ -49,6 +49,86 @@
             <div class="space-y-6 p-6">
 
                 {{-- ============================================================
+                     COUNTRY (filter only — not submitted)
+                     ============================================================ --}}
+                <div>
+                    <label for="country_filter"
+                           class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Country
+                    </label>
+
+                    <div class="relative">
+                        <select id="country_filter"
+                                name="country_filter"
+                                class="block w-full appearance-none rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 pr-10 text-sm text-gray-900 shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:focus:border-indigo-400">
+                            <option value="">All countries</option>
+                            @foreach ($countries as $country)
+                                <option value="{{ $country->id }}">
+                                    {{ $country->name }}
+                                </option>
+                            @endforeach
+                        </select>
+
+                        <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                            </svg>
+                        </span>
+                    </div>
+
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Narrows the state list below. Not saved.
+                    </p>
+                </div>
+
+                {{-- ============================================================
+                     STATE
+                     ============================================================ --}}
+                <div>
+                    <label for="state_id"
+                           class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        State <span class="text-red-500">*</span>
+                    </label>
+
+                    <div class="relative">
+                        <select id="state_id"
+                                name="state_id"
+                                required
+                                class="block w-full appearance-none rounded-xl border bg-white px-3.5 py-2.5 pr-10 text-sm text-gray-900 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
+                                       @error('state_id') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                       @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
+                                       @enderror">
+                            <option value="" disabled {{ old('state_id') ? '' : 'selected' }}>
+                                Select a state
+                            </option>
+                            @foreach ($states as $state)
+                                <option value="{{ $state->id }}"
+                                        data-country-id="{{ $state->country_id }}"
+                                        @selected(old('state_id') == $state->id)>
+                                    {{ $state->name }}@if ($state->country) — {{ $state->country->name }}@endif
+                                </option>
+                            @endforeach
+                        </select>
+
+                        {{-- Custom chevron --}}
+                        <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                            </svg>
+                        </span>
+                    </div>
+
+                    @error('state_id')
+                        <p class="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
+                            <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 00-1 1v3a1 1 0 002 0V7a1 1 0 00-1-1zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>{{ $message }}</span>
+                        </p>
+                    @enderror
+                </div>
+
+                {{-- ============================================================
                      CITY NAME
                      ============================================================ --}}
                 <div>
@@ -81,41 +161,24 @@
                 </div>
 
                 {{-- ============================================================
-                     STATE
+                     DESCRIPTION
                      ============================================================ --}}
                 <div>
-                    <label for="state_id"
+                    <label for="description"
                            class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        State <span class="text-red-500">*</span>
+                        Description
                     </label>
 
-                    <div class="relative">
-                        <select id="state_id"
-                                name="state_id"
-                                required
-                                class="block w-full appearance-none rounded-xl border bg-white px-3.5 py-2.5 pr-10 text-sm text-gray-900 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
-                                       @error('state_id') border-red-500 focus:border-red-500 focus:ring-red-500/30
-                                       @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
-                                       @enderror">
-                            <option value="" disabled {{ old('state_id') ? '' : 'selected' }}>
-                                Select a state
-                            </option>
-                            @foreach ($states as $state)
-                                <option value="{{ $state->id }}" @selected(old('state_id') == $state->id)>
-                                    {{ $state->name }}
-                                </option>
-                            @endforeach
-                        </select>
+                    <textarea id="description"
+                              name="description"
+                              rows="3"
+                              placeholder="Optional notes or description about this city"
+                              class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
+                                     @error('description') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                     @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
+                                     @enderror">{{ old('description') }}</textarea>
 
-                        {{-- Custom chevron --}}
-                        <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
-                            </svg>
-                        </span>
-                    </div>
-
-                    @error('state_id')
+                    @error('description')
                         <p class="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
                             <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                                 <path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 00-1 1v3a1 1 0 002 0V7a1 1 0 00-1-1zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
@@ -151,5 +214,59 @@
 @endsection
 
 @push('dashboard_script')
-    {{-- (empty — no custom JS needed for this form) --}}
+    <script>
+        // ============================================================
+        // Dependent Country → State filter
+        //
+        // The country dropdown is a UI filter only — it hides state
+        // options that don't belong to the selected country. The
+        // `state_id` select is the one actually submitted.
+        // ============================================================
+        (function () {
+            'use strict';
+
+            const countrySelect = document.getElementById('country_filter');
+            const stateSelect   = document.getElementById('state_id');
+
+            if (!countrySelect || !stateSelect) return;
+
+            // Snapshot every state option on first load so we can restore
+            // the full list when the country filter is cleared.
+            const allOptions = Array.from(stateSelect.querySelectorAll('option[data-country-id]'))
+                .map(opt => ({
+                    value: opt.value,
+                    label: opt.textContent,
+                    countryId: opt.dataset.countryId,
+                    selected: opt.selected,
+                }));
+
+            function rebuildStateOptions(countryId) {
+                const currentValue = stateSelect.value;
+
+                // Remove all state options (keep the placeholder)
+                stateSelect.querySelectorAll('option[data-country-id]').forEach(o => o.remove());
+
+                allOptions
+                    .filter(o => !countryId || String(o.countryId) === String(countryId))
+                    .forEach(o => {
+                        const opt = document.createElement('option');
+                        opt.value = o.value;
+                        opt.textContent = o.label;
+                        opt.dataset.countryId = o.countryId;
+                        if (o.value === currentValue) opt.selected = true;
+                        stateSelect.appendChild(opt);
+                    });
+
+                // If the previously-selected state was filtered out, reset
+                // the state select back to the placeholder.
+                const stillPresent = Array.from(stateSelect.options)
+                    .some(o => o.value === currentValue && o.value !== '');
+                if (!stillPresent) stateSelect.value = '';
+            }
+
+            countrySelect.addEventListener('change', function () {
+                rebuildStateOptions(this.value);
+            });
+        })();
+    </script>
 @endpush

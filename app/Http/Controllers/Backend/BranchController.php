@@ -9,6 +9,8 @@ use App\Models\City;
 use App\Models\Country;
 use App\Models\State;
 use Illuminate\Http\Request;
+use App\Http\Enums\BranchStatus;
+use Illuminate\Validation\Rule;
 
 class BranchController extends Controller
 {
@@ -28,7 +30,8 @@ class BranchController extends Controller
         ->latest()
         ->paginate(15)
         ->withQueryString();
-        return view('admin.pages.Branch.index', compact('branches'));
+        $branchStatus = BranchStatus::cases();
+        return view('admin.pages.Branch.index', compact('branches', 'branchStatus'));
     }
 
 
@@ -37,7 +40,8 @@ class BranchController extends Controller
         $countries = Country::orderBy('name')->get();
         $states = State::orderBy('name')->get();
         $cities = City::orderBy('name')->get();
-        return view('admin.pages.Branch.create', compact('countries', 'states', 'cities'));
+        $branchStatus = BranchStatus::cases();
+        return view('admin.pages.Branch.create', compact('countries', 'states', 'cities', 'branchStatus'));
     }
 
     public function store(Request $request)
@@ -57,10 +61,13 @@ class BranchController extends Controller
  
     public function show(string $id)
     {
-        $branch = Branch::findOrFail($id);
-        return view('admin.pages.Branch.show', compact('branch'));
-    }
+        $branch = Branch::with(['country', 'state', 'city'])->findOrFail($id);
 
+        return view('admin.pages.Branch.show', [
+            'branch'       => $branch,
+            'branchStatus' => BranchStatus::cases(),
+        ]);
+    }
 
     public function edit(Branch $branch)
     {
@@ -69,8 +76,9 @@ class BranchController extends Controller
                         ->orderBy('name')->get();
         $cities    = City::where('state_id', $branch->state_id)
                         ->orderBy('name')->get();
+        $branchStatus = BranchStatus::cases();
 
-        return view('admin.pages.Branch.edit', compact('branch', 'countries', 'states', 'cities'));
+        return view('admin.pages.Branch.edit', compact('branch', 'countries', 'states', 'cities', 'branchStatus'));
     }
 
     public function update(UpdateBranchRequest $request, Branch $branch)
@@ -90,5 +98,41 @@ class BranchController extends Controller
 
         return redirect()->route('branches.index')
             ->with('success', 'Branch deleted successfully.');
+    }
+
+
+    /**
+     * Update the status of a single branch.
+     *
+     * Supports two response modes:
+     *  - JSON  → when the request is AJAX (Accept: application/json or X-Requested-With)
+     *  - Redirect → when the request comes from a standard form submit
+     */
+    public function updateStatus(Request $request, Branch $branch)
+    {
+        $validated = $request->validate([
+            'status' => ['required', Rule::in(BranchStatus::values())],
+        ]);
+
+        $branch->update(['status' => $validated['status']]);
+
+        // AJAX / fetch() call
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Branch status updated.',
+                'data'    => [
+                    'id'     => $branch->id,
+                    'status' => $branch->status?->value,
+                    'label'  => $branch->status?->label(),
+                    'color'  => $branch->status?->color(),
+                ],
+            ]);
+        }
+
+        // Standard form fallback
+        return redirect()
+            ->route('branches.index', $request->only('search', 'page'))
+            ->with('success', 'Branch status updated successfully.');
     }
 }

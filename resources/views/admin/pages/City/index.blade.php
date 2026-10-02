@@ -7,7 +7,28 @@
 
 @section('dashboard_content')
 
-    <div class="mx-auto max-w-5xl">
+    <div class="mx-auto max-w-6xl">
+
+        {{-- ============================================================
+             FLASH MESSAGES
+             ============================================================ --}}
+        @if (session('success'))
+            <div class="mb-6 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 shadow-sm dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
+                <svg class="mt-0.5 h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span>{{ session('success') }}</span>
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div class="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-sm dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
+                <svg class="mt-0.5 h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+                </svg>
+                <span>{{ session('error') }}</span>
+            </div>
+        @endif
 
         {{-- ============================================================
              PAGE HEADER
@@ -32,11 +53,15 @@
         </header>
 
         {{-- ============================================================
-             SEARCH BAR
+             FILTER BAR (search + state filter)
              ============================================================ --}}
         <div class="mb-6 flex flex-wrap items-center gap-3">
-            <form action="{{ route('cities.index') }}" method="GET" class="flex flex-1 min-w-[260px] items-center gap-2">
-                <div class="relative flex-1">
+            <form action="{{ route('cities.index') }}"
+                  method="GET"
+                  class="flex flex-1 min-w-[260px] flex-wrap items-center gap-2">
+
+                {{-- Search input --}}
+                <div class="relative flex-1 min-w-[200px]">
                     <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
@@ -50,15 +75,35 @@
                            class="block w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-3 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 dark:focus:border-indigo-400">
                 </div>
 
+                {{-- State filter --}}
+                <div class="relative min-w-[200px]">
+                    <select name="state_id"
+                            class="block w-full appearance-none rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 pr-10 text-sm text-gray-900 shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:focus:border-indigo-400">
+                        <option value="">All states</option>
+                        @foreach ($states as $state)
+                            <option value="{{ $state->id }}" @selected(request('state_id') == $state->id)>
+                                {{ $state->name }}@if ($state->country) — {{ $state->country->name }}@endif
+                            </option>
+                        @endforeach
+                    </select>
+                    <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                        </svg>
+                    </span>
+                </div>
+
+                {{-- Apply --}}
                 <button type="submit"
                         class="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
                     </svg>
-                    <span>Search</span>
+                    <span>Filter</span>
                 </button>
 
-                @if (request('search'))
+                {{-- Clear --}}
+                @if (request('search') || request('state_id'))
                     <a href="{{ route('cities.index') }}"
                        class="inline-flex items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
@@ -82,6 +127,8 @@
                             <th scope="col" class="w-16 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">#</th>
                             <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Name</th>
                             <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">State</th>
+                            <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Country</th>
+                            <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Description</th>
                             <th scope="col" class="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Actions</th>
                         </tr>
                     </thead>
@@ -124,6 +171,37 @@
                                     @endif
                                 </td>
 
+                                {{-- Country (pulled through the state relation) --}}
+                                <td class="whitespace-nowrap px-4 py-3.5">
+                                    @if ($city->state && $city->state->country)
+                                        <div class="flex items-center gap-2">
+                                            @if ($city->state->country->country_code)
+                                                <img src="https://flagcdn.com/w40/{{ strtolower($city->state->country->country_code) }}.png"
+                                                     alt="{{ $city->state->country->name }} flag"
+                                                     class="h-5 w-7 rounded object-cover shadow-sm ring-1 ring-gray-200 dark:ring-gray-700"
+                                                     onerror="this.style.display='none'">
+                                            @endif
+                                            <span class="text-sm text-gray-700 dark:text-gray-300">
+                                                {{ $city->state->country->name }}
+                                            </span>
+                                        </div>
+                                    @else
+                                        <span class="text-xs italic text-gray-400 dark:text-gray-500">—</span>
+                                    @endif
+                                </td>
+
+                                {{-- Description --}}
+                                <td class="px-4 py-3.5 text-sm text-gray-600 dark:text-gray-300">
+                                    @if ($city->description)
+                                        <span title="{{ $city->description }}"
+                                              class="line-clamp-2 block max-w-xs">
+                                            {{ \Illuminate\Support\Str::limit($city->description, 60) }}
+                                        </span>
+                                    @else
+                                        <span class="text-xs italic text-gray-400 dark:text-gray-500">—</span>
+                                    @endif
+                                </td>
+
                                 {{-- Actions --}}
                                 <td class="whitespace-nowrap px-4 py-3.5 text-right">
                                     <div class="inline-flex items-center gap-1.5">
@@ -161,7 +239,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="px-4 py-16 text-center">
+                                <td colspan="6" class="px-4 py-16 text-center">
                                     <div class="mx-auto flex max-w-sm flex-col items-center gap-3">
                                         <span class="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500">
                                             <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
@@ -171,17 +249,17 @@
                                         <div>
                                             <h3 class="text-sm font-semibold text-gray-900 dark:text-white">No cities found</h3>
                                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                                @if (request('search'))
-                                                    No results for "<strong>{{ request('search') }}</strong>". Try a different search.
+                                                @if (request('search') || request('state_id'))
+                                                    No results match your filters. Try adjusting your search or state.
                                                 @else
                                                     Get started by creating your first city.
                                                 @endif
                                             </p>
                                         </div>
-                                        @if (request('search'))
+                                        @if (request('search') || request('state_id'))
                                             <a href="{{ route('cities.index') }}"
                                                class="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500">
-                                                Clear search
+                                                Clear filters
                                             </a>
                                         @else
                                             <a href="{{ route('cities.create') }}"

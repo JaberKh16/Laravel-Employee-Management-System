@@ -2,15 +2,15 @@
 
 namespace App\Http\Enums;
 
-enum ActiveStatus: int
+enum DepartmentStatus: string
 {
-    case Active   = 1;
-    case Inactive = 0;
+    case Active   = 'active';
+    case Inactive = 'inactive';
 
     /**
-     * All backed values — used by validation rules.
+     * All backed values — used by migrations & validation rules.
      *
-     * @return int[]
+     * @return string[]
      */
     public static function values(): array
     {

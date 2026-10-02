@@ -82,6 +82,118 @@
                     @enderror
                 </div>
 
+                {{-- ============================================================
+                     DESCRIPTION
+                     ============================================================ --}}
+                <div>
+                    <label for="description"
+                           class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Description
+                    </label>
+
+                    <textarea id="description"
+                              name="description"
+                              rows="3"
+                              placeholder="Brief description of the department's purpose and responsibilities"
+                              class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
+                                     @error('description') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                     @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
+                                     @enderror">{{ old('description', $department->description) }}</textarea>
+
+                    @error('description')
+                        <p class="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
+                            <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 00-1 1v3a1 1 0 002 0V7a1 1 0 00-1-1zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>{{ $message }}</span>
+                        </p>
+                    @enderror
+                </div>
+
+                {{-- ============================================================
+                     FLOOR INFORMATION
+                     ============================================================ --}}
+                <div>
+                    <label for="floor"
+                           class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Floor
+                    </label>
+
+                    <input id="floor"
+                           type="text"
+                           name="floor"
+                           value="{{ old('floor', $department->floor) }}"
+                           autocomplete="off"
+                           placeholder="e.g. 3rd Floor, Building A"
+                           class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
+                                  @error('floor') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                  @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
+                                  @enderror">
+
+                    @error('floor')
+                        <p class="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
+                            <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 00-1 1v3a1 1 0 002 0V7a1 1 0 00-1-1zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>{{ $message }}</span>
+                        </p>
+                    @enderror
+                </div>
+
+                {{-- ============================================================
+                     STATUS (integer-backed enum: 1 = Active, 0 = Inactive)
+                     ============================================================ --}}
+                <div>
+                    <label for="status"
+                           class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Status <span class="text-red-500">*</span>
+                    </label>
+
+                    @php
+                        // Priority:
+                        //   1. old('status')          → repopulate after validation error
+                        //   2. $department->status    → current DB value (enum instance)
+                        //   3. ActiveStatus::Active   → fallback if status is null
+                        $currentStatus = old(
+                            'status',
+                            $department->status?->value
+                                ?? \App\Http\Enums\ActiveStatus::Active->value
+                        );
+                    @endphp
+
+                    <div class="relative">
+                        <select id="status"
+                                name="status"
+                                required
+                                class="block w-full appearance-none rounded-xl border bg-white px-3.5 py-2.5 pr-10 text-sm text-gray-900 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
+                                       @error('status') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                       @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
+                                       @enderror">
+                            @foreach ($departmentStatus as $option)
+                                <option value="{{ $option->value }}">
+                                    {{ $option->label() }}
+                                </option>
+                            @endforeach
+                        </select>
+
+                        {{-- Custom chevron --}}
+                        <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                            </svg>
+                        </span>
+                    </div>
+
+                    @error('status')
+                        <p class="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
+                            <svg class="mt-0.5 h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 00-1 1v3a1 1 0 002 0V7a1 1 0 00-1-1zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>{{ $message }}</span>
+                        </p>
+                    @enderror
+                </div>
+
             </div>
 
             {{-- ============================================================

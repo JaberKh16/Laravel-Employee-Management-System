@@ -392,21 +392,20 @@
                         </label>
 
                         <div class="relative">
-                            <select id="status"
+                           <select id="status"
                                     name="status"
                                     required
                                     class="block w-full appearance-none rounded-xl border bg-white px-3.5 py-2.5 pr-10 text-sm text-gray-900 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
-                                           @error('status') border-red-500 focus:border-red-500 focus:ring-red-500/30
-                                           @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
-                                           @enderror">
-                                @foreach (\App\Http\Enums\BranchStatus::cases() as $status)
-                                    <option value="{{ $status->value }}"
-                                            @selected(old('status', \App\Http\Enums\BranchStatus::Active->value) === $status->value)>
+                                        @error('status') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                        @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
+                                        @enderror">
+                                @foreach ($branchStatus as $status)
+                                    {{-- @selected(old('status', \App\Http\Enums\BranchStatus::Active->value) === $status->value) --}}
+                                    <option value="{{ $status->value }}">
                                         {{ $status->label() }}
                                     </option>
                                 @endforeach
                             </select>
-
                             <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>

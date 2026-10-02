@@ -40,7 +40,9 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('cities', CityController::class);
         Route::resource('states', StateController::class);
         Route::resource('branches', BranchController::class);
+        Route::patch('branches/{branch}/status', [BranchController::class, 'updateStatus'])->name('branches.update-status');
         Route::resource('departments', DepartmentController::class);
+        Route::patch('departments/{department}/status', [DepartmentController::class, 'updateStatus'])->name('departments.update-status');
         Route::resource('permissions', PermissionController::class);
         Route::resource('roles', RoleController::class);
 
