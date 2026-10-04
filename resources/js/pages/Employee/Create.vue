@@ -317,15 +317,17 @@
 
 <script>
 import Form from 'vform'
-import Datepicker from 'vuejs-datepicker'
+import Datepicker from '@vuepic/vue-datepicker'
+import '@vuepic/vue-datepicker/dist/main.css'
 import axios from 'axios'
-import moment from "moment";
+import moment from 'moment'
+
 export default {
     components: {
         Datepicker
     },
-    data(){
-        return{
+    data() {
+        return {
             employeeForm: new Form({
                 last_name: '',
                 first_name: '',
@@ -346,45 +348,44 @@ export default {
             errors: '',
         }
     },
-    mounted(){
+    mounted() {
         this.getCountries();
         this.getCities();
         this.getStates();
         this.getDepartments();
     },
     methods: {
-        async getCountries(){
+        async getCountries() {
             let res = await axios.get('/api/countries')
             this.countries = res.data.data
         },
-        async getCities(){
+        async getCities() {
             let res = await axios.get('/api/cities')
             this.cities = res.data.data
         },
-        async getStates(){
+        async getStates() {
             let res = await axios.get('/api/states')
             this.states = res.data.data
         },
-        async getDepartments(){
+        async getDepartments() {
             let res = await axios.get('/api/departments')
             this.departments = res.data.data
         },
-        async storeEmployee(){
-            this.employeeForm.birthdate = this.formateDate(this.employeeForm.birthdate);
-            this.employeeForm.date_hired = this.formateDate(this.employeeForm.date_hired);
+        async storeEmployee() {
+            this.employeeForm.birthdate = this.formatDate(this.employeeForm.birthdate);
+            this.employeeForm.date_hired = this.formatDate(this.employeeForm.date_hired);
             try {
-                await axios.post('/api/employees', this.employeeForm)
-                await this.$router.push({name: 'employee.index'});
+                await this.employeeForm.post('/api/employees')
+                await this.$router.push({ name: 'employee.index' });
             } catch (e) {
-                this.errors = e.response.data.errors
+                this.errors = e.response?.data?.errors ?? {}
             }
-
-
         },
-        formateDate(value){
-            if(value){
-                return moment(String(value)).format("YYYYMMDD");
+        formatDate(value) {
+            if (value) {
+                return moment(String(value)).format('YYYY-MM-DD');
             }
+            return null;
         }
     }
 }

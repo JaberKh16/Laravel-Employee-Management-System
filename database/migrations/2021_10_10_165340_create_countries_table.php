@@ -15,10 +15,21 @@ class CreateCountriesTable extends Migration
     {
         Schema::create('countries', function (Blueprint $table) {
             $table->id();
-            $table->char('country_code');
-            $table->string('name');
-            $table->text('description')->default(null);
+
+            // ISO 3166-1 alpha-2 codes are exactly 2 chars (US, BD, IN).
+            // char(2) is fine but string(3) is more forgiving if you ever
+            // need to store alpha-3 codes without another migration.
+            $table->char('country_code', 2)->unique();
+
+            $table->string('name')->unique();
+
+            // TEXT columns can't have a DEFAULT in MySQL (portable DBs reject it).
+            // Make it nullable instead — same effect, works everywhere.
+            $table->text('description')->nullable();
+
             $table->timestamps();
+
+            $table->index('name'); // speeds up search/orderBy on the index page
         });
     }
 

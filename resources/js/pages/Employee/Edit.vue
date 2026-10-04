@@ -341,7 +341,8 @@
 
 <script>
 import Form from 'vform'
-import Datepicker from 'vuejs-datepicker'
+import Datepicker from '@vuepic/vue-datepicker'
+import '@vuepic/vue-datepicker/dist/main.css'
 import axios from 'axios'
 import moment from "moment";
 export default {

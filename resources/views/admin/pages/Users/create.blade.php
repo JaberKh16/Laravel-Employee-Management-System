@@ -1,8 +1,9 @@
 @extends('admin.layout.main')
 
 @push('dashboard_style')
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 @endpush
+
 @section('dashboard_content')
 
     <div class="mx-auto max-w-3xl">
@@ -53,14 +54,23 @@
             <div class="space-y-6 p-6">
 
                 {{-- ============================================================
-                     ROLE (multi-select)
+                     ROLES (multi-select)
                      ============================================================ --}}
                 <div>
                     <label for="roleSelect"
                            class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Roles
-                        <span class="text-red-500">*</span>
+                        Roles <span class="text-red-500">*</span>
                     </label>
+
+                    @php
+                        // Precompute the selected role IDs so we can compare
+                        // cleanly. Works for both create (empty) and edit.
+                        $selectedRoles = old('roles', isset($userRole) ? $userRole : []);
+
+                        // Normalise: if $userRole contains names, keep as-is;
+                        // if it contains IDs, keep as-is. Comparison below
+                        // handles both by checking name OR id.
+                    @endphp
 
                     <select id="roleSelect"
                             name="roles[]"
@@ -72,11 +82,7 @@
                                    @enderror">
                         @foreach ($roles as $role)
                             <option value="{{ $role->id }}"
-                                @isset($user)
-                                    @foreach ($userRole as $userrole)
-                                        {{ $userrole->name == $role->name ? 'selected' : '' }}
-                                    @endforeach
-                                @endisset>
+                                {{ in_array($role->id, $selectedRoles) || in_array($role->name, $selectedRoles) ? 'selected' : '' }}>
                                 {{ $role->name }}
                             </option>
                         @endforeach
@@ -99,6 +105,55 @@
 
                 {{-- Divider --}}
                 <div class="border-t border-gray-100 dark:border-gray-700"></div>
+
+                {{-- ============================================================
+                     FIRST + LAST NAME (2-col grid)
+                     ============================================================ --}}
+                <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    {{-- First name --}}
+                    <div>
+                        <label for="first_name"
+                               class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            First Name <span class="text-red-500">*</span>
+                        </label>
+                        <input id="first_name"
+                               type="text"
+                               name="first_name"
+                               value="{{ old('first_name', $user->profile->first_name ?? '') }}"
+                               required
+                               autocomplete="given-name"
+                               placeholder="John"
+                               class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
+                                      @error('first_name') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                      @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
+                                      @enderror">
+                        @error('first_name')
+                            <p class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    {{-- Last name --}}
+                    <div>
+                        <label for="last_name"
+                               class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Last Name <span class="text-red-500">*</span>
+                        </label>
+                        <input id="last_name"
+                               type="text"
+                               name="last_name"
+                               value="{{ old('last_name', $user->profile->last_name ?? '') }}"
+                               required
+                               autocomplete="family-name"
+                               placeholder="Doe"
+                               class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
+                                      @error('last_name') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                      @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
+                                      @enderror">
+                        @error('last_name')
+                            <p class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
 
                 {{-- ============================================================
                      USERNAME
@@ -129,55 +184,6 @@
                             <span>{{ $message }}</span>
                         </p>
                     @enderror
-                </div>
-
-                {{-- ============================================================
-                     FIRST + LAST NAME (2-col grid)
-                     ============================================================ --}}
-                <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    {{-- First name --}}
-                    <div>
-                        <label for="first_name"
-                               class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            First Name <span class="text-red-500">*</span>
-                        </label>
-                        <input id="first_name"
-                               type="text"
-                               name="first_name"
-                               value="{{ old('first_name', $user->first_name ?? '') }}"
-                               required
-                               autocomplete="given-name"
-                               placeholder="John"
-                               class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
-                                      @error('first_name') border-red-500 focus:border-red-500 focus:ring-red-500/30
-                                      @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
-                                      @enderror">
-                        @error('first_name')
-                            <p class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    {{-- Last name --}}
-                    <div>
-                        <label for="last_name"
-                               class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Last Name <span class="text-red-500">*</span>
-                        </label>
-                        <input id="last_name"
-                               type="text"
-                               name="last_name"
-                               value="{{ old('last_name', $user->last_name ?? '') }}"
-                               required
-                               autocomplete="family-name"
-                               placeholder="Doe"
-                               class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
-                                      @error('last_name') border-red-500 focus:border-red-500 focus:ring-red-500/30
-                                      @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
-                                      @enderror">
-                        @error('last_name')
-                            <p class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
                 </div>
 
                 {{-- ============================================================
@@ -238,7 +244,6 @@
                                       @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
                                       @enderror">
 
-                        {{-- Show / hide toggle --}}
                         <button type="button"
                                 data-toggle-password="password"
                                 aria-label="Toggle password visibility"
@@ -284,7 +289,6 @@
                                placeholder="••••••••"
                                class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 pr-11 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500 dark:focus:border-indigo-400">
 
-                        {{-- Show / hide toggle --}}
                         <button type="button"
                                 data-toggle-password="password-confirm"
                                 aria-label="Toggle password visibility"
@@ -325,32 +329,78 @@
     </div>
 
 @endsection
+
 @push('dashboard_script')
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script>
-    $(document).ready(function() {
-        $('#roleSelect').select2(
-            placeholder: 'Select one or more roles',
-            allowClear: true,
-            width: '100%',
-            closeOnSelect: false,
-        );
-    });
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        // ============================================================
+        // Select2 — initialize the role multi-select
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.jQuery && jQuery.fn.select2) {
+                jQuery('#roleSelect').select2({
+                    placeholder: 'Select one or more roles',
+                    allowClear: true,
+                    width: '100%',
+                    closeOnSelect: false,
+                });
+            }
+        });
 
-    document.addEventListener('DOMContentLoaded', () => {
-        // Password visibility toggles
-        document.querySelectorAll('[data-toggle-password]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const input = document.getElementById(btn.dataset.togglePassword);
-                if (! input) return;
+        // ============================================================
+        // Username auto-fill + password visibility toggles
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', () => {
 
-                const isHidden = input.type === 'password';
-                input.type = isHidden ? 'text' : 'password';
+            // ---------- Username auto-fill ----------
+            const firstNameInput = document.getElementById('first_name');
+            const lastNameInput  = document.getElementById('last_name');
+            const usernameInput  = document.getElementById('username');
 
-                btn.querySelector('[data-eye-open]')?.classList.toggle('hidden', isHidden);
-                btn.querySelector('[data-eye-closed]')?.classList.toggle('hidden', ! isHidden);
+            if (firstNameInput && lastNameInput && usernameInput) {
+                let userEditedUsername = usernameInput.value.trim() !== '';
+
+                usernameInput.addEventListener('input', () => {
+                    userEditedUsername = true;
+                });
+
+                const slugify = (value) =>
+                    value.toString()
+                        .normalize('NFKD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .toLowerCase()
+                        .trim()
+                        .replace(/[^a-z0-9._-]+/g, '')
+                        .replace(/^[._-]+|[._-]+$/g, '')
+                        .substring(0, 30);
+
+                const buildUsername = () => {
+                    if (userEditedUsername) return;
+                    const first = slugify(firstNameInput.value || '');
+                    const last  = slugify(lastNameInput.value  || '');
+                    let candidate = first;
+                    if (first && last) candidate = `${first}.${last}`;
+                    else if (last)     candidate = last;
+                    usernameInput.value = candidate.substring(0, 30);
+                };
+
+                firstNameInput.addEventListener('input', buildUsername);
+                lastNameInput.addEventListener('input', buildUsername);
+            }
+
+            // ---------- Password visibility toggles ----------
+            document.querySelectorAll('[data-toggle-password]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const input = document.getElementById(btn.dataset.togglePassword);
+                    if (!input) return;
+
+                    const isHidden = input.type === 'password';
+                    input.type = isHidden ? 'text' : 'password';
+
+                    btn.querySelector('[data-eye-open]')?.classList.toggle('hidden', isHidden);
+                    btn.querySelector('[data-eye-closed]')?.classList.toggle('hidden', !isHidden);
+                });
             });
         });
-    });
-</script>
+    </script>
 @endpush

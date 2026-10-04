@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class UserFactory extends Factory
@@ -36,7 +37,6 @@ class UserFactory extends Factory
             'dept_id' => null,
             'created_by' => null,
             'updated_by' => null,
-
         ];
     }
 
@@ -69,6 +69,20 @@ class UserFactory extends Factory
             if (method_exists($user, 'assignRole')) {
                 $user->assignRole($role);
             }
+        });
+    }
+
+    /**
+     * Create the user with an attached profile.
+     * The `profile` relationship is hasOne, so we build it in
+     * `afterCreating` once the user row exists.
+     *
+     * Usage: User::factory()->withProfile()->create();
+     */
+    public function withProfile(array $attributes = []): static
+    {
+        return $this->afterCreating(function (User $user) use ($attributes) {
+            $user->profile()->create($attributes);
         });
     }
 }

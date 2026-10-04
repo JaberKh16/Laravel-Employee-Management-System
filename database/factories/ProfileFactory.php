@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class ProfileFactory extends Factory
 {
     protected $model = Profile::class;
+
     public function definition()
     {
         return [
@@ -20,25 +21,25 @@ class ProfileFactory extends Factory
 
             // Names — mutators will capitalize, but we pass proper case anyway
             'first_name' => $this->faker->firstName(),
-            'last_name'  => $this->faker->lastName(),
+            'last_name' => $this->faker->lastName(),
 
-            'phone'     => $this->faker->phoneNumber(),
-            'avatar'    => null,   // null → accessor falls back to ui-avatars
+            'phone' => $this->faker->phoneNumber(),
+            'avatar' => null,   // null → accessor falls back to ui-avatars
             'birthdate' => $this->faker->dateTimeBetween('-65 years', '-18 years'),
-            'gender'    => $this->faker->randomElement(['male', 'female', 'other']),
-            'bio'       => $this->faker->paragraph(2),
+            'gender' => $this->faker->randomElement(['male', 'female', 'other']),
+            'bio' => $this->faker->paragraph(2),
 
             // Location — random IDs if tables are seeded; null otherwise
-            'address'    => $this->faker->streetAddress(),
-            'zip_code'   => $this->faker->postcode(),
+            'address' => $this->faker->streetAddress(),
+            'zip_code' => $this->faker->postcode(),
             'country_id' => null,
-            'state_id'   => null,
-            'city_id'    => null,
+            'state_id' => null,
+            'city_id' => null,
 
             // Social
-            'website'  => $this->faker->boolean(30) ? $this->faker->url() : null,
+            'website' => $this->faker->boolean(30) ? $this->faker->url() : null,
             'linkedin' => $this->faker->boolean(20) ? 'https://linkedin.com/in/' . $this->faker->userName() : null,
-            'twitter'  => $this->faker->boolean(20) ? 'https://twitter.com/' . $this->faker->userName() : null,
+            'twitter' => $this->faker->boolean(20) ? 'https://twitter.com/' . $this->faker->userName() : null,
         ];
     }
 
@@ -56,10 +57,13 @@ class ProfileFactory extends Factory
             $city = City::inRandomOrder()->first()
                 ?? City::factory()->create();
 
+            // Walk up the chain: city → state → country
+            $state = $city->state;
+
             return [
-                'country_id' => $city->state?->country_id ?? $city->state?->country?->id,
-                'state_id'   => $city->state_id,
-                'city_id'    => $city->id,
+                'country_id' => $state?->country_id,
+                'state_id' => $city->state_id,
+                'city_id' => $city->id,
             ];
         });
     }
@@ -72,12 +76,12 @@ class ProfileFactory extends Factory
     {
         return $this->state(function () use ($countryId) {
             $state = State::where('country_id', $countryId)->inRandomOrder()->first();
-            $city  = $state ? City::where('state_id', $state->id)->inRandomOrder()->first() : null;
+            $city = $state ? City::where('state_id', $state->id)->inRandomOrder()->first() : null;
 
             return [
                 'country_id' => $countryId,
-                'state_id'   => $state?->id,
-                'city_id'    => $city?->id,
+                'state_id' => $state?->id,
+                'city_id' => $city?->id,
             ];
         });
     }
@@ -100,16 +104,16 @@ class ProfileFactory extends Factory
     public function minimal(): static
     {
         return $this->state([
-            'phone'     => null,
-            'avatar'    => null,
+            'phone' => null,
+            'avatar' => null,
             'birthdate' => null,
-            'gender'    => null,
-            'bio'       => null,
-            'address'   => null,
-            'zip_code'  => null,
-            'website'   => null,
-            'linkedin'  => null,
-            'twitter'   => null,
+            'gender' => null,
+            'bio' => null,
+            'address' => null,
+            'zip_code' => null,
+            'website' => null,
+            'linkedin' => null,
+            'twitter' => null,
         ]);
     }
 
@@ -123,5 +127,4 @@ class ProfileFactory extends Factory
             'avatar' => 'https://i.pravatar.cc/300?u=' . $this->faker->uuid(),
         ]);
     }
-    
 }

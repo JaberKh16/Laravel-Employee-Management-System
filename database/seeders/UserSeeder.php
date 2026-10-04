@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Profile;
 use App\Models\User;
 use Faker\Factory as FakerFactory;
 use Faker\Generator as FakerGenerator;
@@ -161,23 +162,4 @@ class UserSeeder extends Seeder
             $data
         );
     }
-
-    /**
-     * Local faker instance (Laravel 10+ uses `fake()` helper, older uses Faker\Factory).
-     */
-    protected function faker()
-    {
-        return \Faker\Factory::create();
-    }
-
-    // Convenience proxy so we can write $this->faker->foo()
-    protected function __get($name)
-    {
-        if ($name === 'faker') {
-            return $this->faker();
-        }
-        return null;
-    }
-    
 }
-

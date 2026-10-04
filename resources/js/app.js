@@ -12,19 +12,37 @@ import './theme-toggle';
 
 
 
+// vue-2 version setup
+// window.Vue = require('vue').default;
+// import router from './router'
 
-window.Vue = require('vue').default;
-import router from './router'
+// Vue.component('employee-index', require('./pages/Employee/Index.vue').default);
 
-Vue.component('employee-index', require('./pages/Employee/Index.vue').default);
-
-const app = new Vue({
-    el: '#app',
-    router
-});
+// const app = new Vue({
+//     el: '#app',
+//     router
+// });
 
 
 
-// sidebar script
+// // sidebar script
+// import { initSidebar } from './sidebar';
+// initSidebar();
+
+
+// vue-3 version setup
+import { createApp } from 'vue';
+import router from './router';
+import EmployeeIndex from './pages/Employee/Index.vue';
+
+// sidebar script (plain JS, framework-agnostic)
 import { initSidebar } from './sidebar';
 initSidebar();
+
+const app = createApp({});
+
+// Register global components if you still need them
+app.component('employee-index', EmployeeIndex);
+
+app.use(router);
+app.mount('#app');

@@ -15,6 +15,7 @@ use App\Observers\EmployeeObserver;
 use App\Observers\StateObserver;
 use App\Observers\UserObserver;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -43,5 +44,12 @@ class AppServiceProvider extends ServiceProvider
         Employee::observe(EmployeeObserver::class);
         User::observe(UserObserver::class);
         Paginator::useBootstrap();
+
+
+
+        //  Register @selected manually in AppServiceProvider::boot()
+        Blade::directive('selected', function ($expression) {
+            return "<?php echo ($expression) ? 'selected' : ''; ?>";
+        });
     }
 }

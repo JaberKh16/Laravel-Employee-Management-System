@@ -29,8 +29,8 @@ class ProfileSeeder extends Seeder
                     ->forUser($user)
                     ->when(
                         City::exists(),
-                        fn ($factory) => $factory->withLocation(),
-                        fn ($factory) => $factory
+                        fn($factory) => $factory->withLocation(),
+                        fn($factory) => $factory
                     )
                     ->create();
             }
@@ -41,48 +41,48 @@ class ProfileSeeder extends Seeder
         // ============================================================
         $demoProfiles = [
             [
-                'username'   => 'johndoe',
-                'email'      => 'john.doe@example.com',
+                'username' => 'johndoe',
+                'email' => 'john.doe@example.com',
                 'first_name' => 'John',
-                'last_name'  => 'Doe',
-                'gender'     => 'male',
-                'bio'        => 'Full-stack developer with 10+ years of experience.',
-                'website'    => 'https://johndoe.dev',
-                'linkedin'   => 'https://linkedin.com/in/johndoe',
+                'last_name' => 'Doe',
+                'gender' => 'male',
+                'bio' => 'Full-stack developer with 10+ years of experience.',
+                'website' => 'https://johndoe.dev',
+                'linkedin' => 'https://linkedin.com/in/johndoe',
             ],
             [
-                'username'   => 'janesmith',
-                'email'      => 'jane.smith@example.com',
+                'username' => 'janesmith',
+                'email' => 'jane.smith@example.com',
                 'first_name' => 'Jane',
-                'last_name'  => 'Smith',
-                'gender'     => 'female',
-                'bio'        => 'Product designer. Loves coffee and clean UI.',
-                'twitter'    => 'https://twitter.com/janesmith',
+                'last_name' => 'Smith',
+                'gender' => 'female',
+                'bio' => 'Product designer. Loves coffee and clean UI.',
+                'twitter' => 'https://twitter.com/janesmith',
             ],
             [
-                'username'   => 'bobjohnson',
-                'email'      => 'bob.johnson@example.com',
+                'username' => 'bobjohnson',
+                'email' => 'bob.johnson@example.com',
                 'first_name' => 'Bob',
-                'last_name'  => 'Johnson',
-                'gender'     => 'male',
-                'bio'        => 'DevOps engineer. Kubernetes enthusiast.',
-                'website'    => 'https://bobjohnson.io',
+                'last_name' => 'Johnson',
+                'gender' => 'male',
+                'bio' => 'DevOps engineer. Kubernetes enthusiast.',
+                'website' => 'https://bobjohnson.io',
             ],
             [
-                'username'   => 'alicewilliams',
-                'email'      => 'alice.williams@example.com',
+                'username' => 'alicewilliams',
+                'email' => 'alice.williams@example.com',
                 'first_name' => 'Alice',
-                'last_name'  => 'Williams',
-                'gender'     => 'female',
-                'bio'        => 'QA lead. Bug hunter by day, gamer by night.',
+                'last_name' => 'Williams',
+                'gender' => 'female',
+                'bio' => 'QA lead. Bug hunter by day, gamer by night.',
             ],
             [
-                'username'   => 'charliebrown',
-                'email'      => 'charlie.brown@example.com',
+                'username' => 'charliebrown',
+                'email' => 'charlie.brown@example.com',
                 'first_name' => 'Charlie',
-                'last_name'  => 'Brown',
-                'gender'     => 'male',
-                'bio'        => 'Backend engineer. Go and Rust.',
+                'last_name' => 'Brown',
+                'gender' => 'male',
+                'bio' => 'Backend engineer. Go and Rust.',
             ],
         ];
 
@@ -90,10 +90,10 @@ class ProfileSeeder extends Seeder
             $user = User::firstOrCreate(
                 ['email' => $data['email']],
                 [
-                    'username'          => $data['username'],
-                    'password'          => bcrypt('password'),
+                    'username' => $data['username'],
+                    'password' => bcrypt('password'),
                     'email_verified_at' => now(),
-                    'status'            => 1,
+                    'status' => 1,
                 ]
             );
 
@@ -104,23 +104,23 @@ class ProfileSeeder extends Seeder
 
             $profileData = [
                 'first_name' => $data['first_name'],
-                'last_name'  => $data['last_name'],
-                'gender'     => $data['gender'],
-                'bio'        => $data['bio'],
-                'phone'      => fake()->phoneNumber(),
-                'birthdate'  => fake()->dateTimeBetween('-60 years', '-22 years'),
-                'address'    => fake()->streetAddress(),
-                'zip_code'   => fake()->postcode(),
-                'website'    => $data['website']  ?? null,
-                'linkedin'   => $data['linkedin'] ?? null,
-                'twitter'    => $data['twitter']  ?? null,
+                'last_name' => $data['last_name'],
+                'gender' => $data['gender'],
+                'bio' => $data['bio'],
+                'phone' => fake()->phoneNumber(),
+                'birthdate' => fake()->dateTimeBetween('-60 years', '-22 years'),
+                'address' => fake()->streetAddress(),
+                'zip_code' => fake()->postcode(),
+                'website' => $data['website'] ?? null,
+                'linkedin' => $data['linkedin'] ?? null,
+                'twitter' => $data['twitter'] ?? null,
             ];
 
             // Attach location if cities exist
             if (City::exists()) {
                 $city = City::inRandomOrder()->first();
-                $profileData['city_id']    = $city->id;
-                $profileData['state_id']   = $city->state_id;
+                $profileData['city_id'] = $city->id;
+                $profileData['state_id'] = $city->state_id;
                 $profileData['country_id'] = $city->state?->country_id ?? null;
             }
 
@@ -139,7 +139,7 @@ class ProfileSeeder extends Seeder
                 ->count($extra)
                 ->when(
                     City::exists(),
-                    fn ($factory) => $factory->withLocation()
+                    fn($factory) => $factory->withLocation()
                 )
                 ->create();
         }

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Http\Enums\ActiveStatus;
 use App\Models\Department;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -64,6 +65,7 @@ class DepartmentSeeder extends Seeder
                 [
                     'description' => $data['description'],
                     'floor' => $data['floor'],
+                    'status' => ActiveStatus::Active->value,
                     // manager_id left null; assign below
                 ]
             );
@@ -72,19 +74,23 @@ class DepartmentSeeder extends Seeder
         // ============================================================
         // 2. Assign managers from existing users (if any)
         // ============================================================
-        $availableUsers = User::query()
-            ->whereDoesntHave('managedDepartments')   // only users not already managing
-            ->inRandomOrder()
-            ->take(Department::whereNull('manager_id')->count())
-            ->get();
+        // Only consider users who aren't already managing a department.
+        // Requires User::managedDepartments() relation.
+        if (User::exists()) {
+            $availableUsers = User::query()
+                ->whereDoesntHave('managedDepartments')
+                ->inRandomOrder()
+                ->take(Department::whereNull('manager_id')->count())
+                ->get();
 
-        Department::whereNull('manager_id')
-            ->get()
-            ->each(function (Department $department, int $i) use ($availableUsers) {
-                if ($user = $availableUsers->get($i)) {
-                    $department->update(['manager_id' => $user->id]);
-                }
-            });
+            Department::whereNull('manager_id')
+                ->get()
+                ->each(function (Department $department, int $i) use ($availableUsers) {
+                    if ($user = $availableUsers->get($i)) {
+                        $department->update(['manager_id' => $user->id]);
+                    }
+                });
+        }
 
         // ============================================================
         // 3. Optional — extra random departments (local only)

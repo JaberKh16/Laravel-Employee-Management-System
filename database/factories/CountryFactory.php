@@ -12,19 +12,21 @@ class CountryFactory extends Factory
     public function definition(): array
     {
         return [
-            'country_code' => strtoupper($this->faker->unique()->countryCode),
-            'name'         => $this->faker->unique()->country,
-            'description'  => $this->faker->sentence(12),
+            'country_code' => strtoupper($this->faker->unique()->countryCode()),
+            'name' => $this->faker->unique()->country(),
+            'description' => $this->faker->sentence(12),
         ];
     }
 
-    /** A named state for tests. */
+    /**
+     * Named state for tests and deterministic seeds.
+     */
     public function bangladesh(): static
     {
-        return $this->state(fn () => [
+        return $this->state(fn() => [
             'country_code' => 'BD',
-            'name'         => 'Bangladesh',
-            'description'  => 'South Asian country.',
+            'name' => 'Bangladesh',
+            'description' => 'South Asian country.',
         ]);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Http\Enums\ActiveStatus;
 use App\Models\Department;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -55,6 +56,10 @@ class DepartmentFactory extends Factory
             // manager_id → nullable, so default to no manager.
             // Use ->withManager() or ->forManager($user) to attach one.
             'manager_id' => null,
+
+            // status → defaults to Active via DB default or the enum.
+            // Override with ->inactive() below.
+            'status' => ActiveStatus::Active->value,
         ];
     }
 
@@ -104,6 +109,28 @@ class DepartmentFactory extends Factory
             'description' => null,
             'floor' => null,
             'manager_id' => null,
+        ]);
+    }
+
+    /**
+     * Inactive department (status = 0).
+     * Usage: Department::factory()->inactive()->create();
+     */
+    public function inactive(): static
+    {
+        return $this->state([
+            'status' => ActiveStatus::Inactive->value,
+        ]);
+    }
+
+    /**
+     * Active department (status = 1) — explicit for readability.
+     * Usage: Department::factory()->active()->create();
+     */
+    public function active(): static
+    {
+        return $this->state([
+            'status' => ActiveStatus::Active->value,
         ]);
     }
 }

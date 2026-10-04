@@ -2,20 +2,27 @@
 
 namespace App\Models;
 
+use App\Http\Casts\EnumCast;
+use App\Http\Enums\BranchStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Http\Casts\EnumCast;                 // the generic string-enum cast
-use App\Http\Enums\BranchStatus;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Branch extends Model
 {
     use HasFactory, SoftDeletes;
+
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
     protected $table = 'branch';
 
     protected $fillable = [
         'name',
         'code',
+        'description',   // added — factory writes it, so it must be fillable
         'email',
         'phone',
         'address',
@@ -30,8 +37,6 @@ class Branch extends Model
     protected $casts = [
         'status' => EnumCast::class . ':' . BranchStatus::class,
     ];
-
-
 
     /* ---------- Relations ---------- */
     public function country()
@@ -49,12 +54,12 @@ class Branch extends Model
         return $this->belongsTo(City::class);
     }
 
-
     /* ---------- Scopes ---------- */
     public function scopeSearch($query, ?string $term)
     {
-        if (!$term)
+        if (!$term) {
             return $query;
+        }
 
         return $query->where(function ($q) use ($term) {
             $q->where('name', 'like', "%{$term}%")
@@ -86,12 +91,12 @@ class Branch extends Model
     public function getInitialsAttribute(): string
     {
         $name = $this->name ?? 'B';
-        // Split on spaces and take first letter of first two words
         $parts = preg_split('/\s+/', trim($name));
         $initials = '';
         foreach (array_slice($parts, 0, 2) as $p) {
             $initials .= mb_substr($p, 0, 1);
         }
+
         return mb_strtoupper($initials ?: 'B');
     }
 
