@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use App\Http\Casts\EnumCast;
+use App\Http\Enums\EmployeeStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Http\Enums\EmployeeStatus;
 
 class Employee extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'address',
         'department_id',
         'country_id',
@@ -56,5 +58,10 @@ class Employee extends Model
     public function state()
     {
         return $this->belongsTo(State::class)->withDefault();
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

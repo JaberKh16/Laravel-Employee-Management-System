@@ -201,8 +201,6 @@
 
     {{-- Main content --}}
     <main id="main-content" class="py-6">
-
-        @include('components.sweet-alert')
         @yield('content')
     </main>
 

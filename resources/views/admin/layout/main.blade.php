@@ -18,6 +18,9 @@
     {{-- CSS Dashboard --}}
     @include('admin.partials._dashboard_css')
 
+    {{-- Main Script --}}
+    @include('admin.partials._dashboard_scripts')
+
     @stack('dashboard_style')
 
     @stack('styles')
@@ -96,9 +99,18 @@
     <script src="{{ mix('js/app.js') }}" defer></script>
     <script src="{{ mix('js/script.js') }}" defer></script>
 
+   
     @include('admin.partials.js.scroll-top')
+    @include('components.sweet-alert')
 
-    @include('admin.partials._dashboard_scripts')
+
+
+    {{-- ═══════════════════════════════════════════════════════════
+     GLOBAL LOADING SYSTEM — include once, use everywhere
+     ═══════════════════════════════════════════════════════════ --}}
+    @include('components.loading.overlay')
+    @include('admin.partials._dashboard_animation_script')
+
     @stack('scripts')
 </body>
 </html>

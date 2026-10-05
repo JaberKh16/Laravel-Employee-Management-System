@@ -120,7 +120,6 @@
                                type="text"
                                name="first_name"
                                value="{{ old('first_name', $user->profile->first_name ?? '') }}"
-                               required
                                autocomplete="given-name"
                                placeholder="John"
                                class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
@@ -142,7 +141,6 @@
                                type="text"
                                name="last_name"
                                value="{{ old('last_name', $user->profile->last_name ?? '') }}"
-                               required
                                autocomplete="family-name"
                                placeholder="Doe"
                                class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
@@ -167,7 +165,6 @@
                            type="text"
                            name="username"
                            value="{{ old('username', $user->username ?? '') }}"
-                           required
                            autocomplete="username"
                            autofocus
                            placeholder="e.g. john.doe"

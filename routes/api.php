@@ -19,9 +19,20 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::middleware(['auth'])->group(function () {
+// Route::middleware(['auth'])->group(function () {
 
+// });
+
+// ─── Location cascade endpoints ────────────────────────────
+Route::middleware(['auth'])->prefix('api')->group(function () {
+    Route::get('states', fn (Request $r) =>
+        \App\Models\State::where('country_id', $r->country_id)->orderBy('name')->get(['id', 'name'])
+    );
+    Route::get('cities', fn (Request $r) =>
+        \App\Models\City::where('state_id', $r->state_id)->orderBy('name')->get(['id', 'name'])
+    );
 });
+
 
 // employe resource api
 Route::apiResource('employees', EmployeeController::class);

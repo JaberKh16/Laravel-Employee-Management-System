@@ -1,9 +1,10 @@
 @extends('admin.layout.main')
 
 @push('dashboard_style')
-<link rel="stylesheet" href="http://cdn.datatables.net/1.11.3/css/jquery.dataTables.min.css">
 <style>
-    /* Align DataTables controls with Tailwind styling */
+    /* ══════════════════════════════════════════════════════════════
+       DataTables + Tailwind alignment
+       ══════════════════════════════════════════════════════════════ */
     .dataTables_wrapper .dataTables_length select,
     .dataTables_wrapper .dataTables_filter input {
         border-radius: 0.75rem;
@@ -23,408 +24,735 @@
         border-color: #4b5563;
         color: #fff;
     }
+
+    /* ══════════════════════════════════════════════════════════════
+       Collapsible filter panel
+       ══════════════════════════════════════════════════════════════ */
+    .filter-panel {
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition: max-height 0.4s ease, opacity 0.3s ease;
+    }
+    .filter-panel.is-open {
+        max-height: 900px;
+        opacity: 1;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       Radio pill
+       ══════════════════════════════════════════════════════════════ */
+    .criteria-radio:checked + label {
+        background-color: #4f46e5;
+        color: #fff;
+        border-color: #4f46e5;
+        box-shadow: 0 4px 10px rgba(79,70,229,0.3);
+    }
+    .criteria-radio + label { transition: all 0.15s ease; }
+    .criteria-radio { position: absolute; opacity: 0; pointer-events: none; }
+
+    /* ══════════════════════════════════════════════════════════════
+       Toolbar — perfect vertical alignment (force all to 42px)
+       ══════════════════════════════════════════════════════════════ */
+    .toolbar-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+    .toolbar-row > * { flex-shrink: 0; }
+    .toolbar-row > form { flex: 1 1 auto; min-width: 260px; }
+
+    /* Every toolbar control is forced to the same height */
+    .toolbar-btn,
+    .toolbar-row .btn-loading,
+    .toolbar-row button[type="submit"],
+    .toolbar-row > button,
+    .toolbar-row > a,
+    .toolbar-row > div > button {
+        height: 42px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.5rem;
+        line-height: 1;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+    .toolbar-input,
+    .toolbar-row input[type="search"] {
+        height: 42px !important;
+        line-height: 1;
+    }
+
+    /* Ensure icons inside toolbar controls render at a consistent size */
+    .toolbar-row i[class^="ri-"],
+    .toolbar-row i[class*=" ri-"] {
+        font-size: 1.125rem;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       Modal animations
+       ══════════════════════════════════════════════════════════════ */
+    .modal-backdrop {
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(4px);
+        animation: fadeIn 0.2s ease;
+    }
+    .modal-card { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(24px) scale(0.98); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .badge-gradient {
+        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    }
 </style>
 @endpush
 
 @section('dashboard_content')
 
-<div class="flex flex-col lg:flex-row gap-6">
+{{-- ══════════════════════════════════════════════════════════════
+     PAGE HEADER
+     ══════════════════════════════════════════════════════════════ --}}
+<header class="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-gray-200 pb-4 dark:border-gray-700">
+    <div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">Users</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage all user accounts in the system</p>
+    </div>
 
-    {{-- ============================================================
-         SIDEBAR — Name / Email / Late (Date) FILTER FIELDS
-         ============================================================ --}}
-    <aside class="w-full lg:w-72 shrink-0">
-        <div class="sticky top-6 space-y-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+    <a href="{{ route('users.create') }}"
+       class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-500/40 hover:brightness-105 active:translate-y-0">
+        <i class="ri-add-line text-lg"></i>
+        <span>Create User</span>
+    </a>
+</header>
 
-            {{-- Sidebar header --}}
-            <div class="flex items-center gap-3 border-b border-gray-200 pb-3 dark:border-gray-700">
-                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/>
-                    </svg>
+{{-- ══════════════════════════════════════════════════════════════
+     TOOLBAR
+     ══════════════════════════════════════════════════════════════ --}}
+<div class="toolbar-row mb-4">
+
+    {{-- 1. Filter toggle --}}
+    <button type="button"
+            id="toggleFilterBtn"
+            aria-expanded="false"
+            aria-controls="filterPanel"
+            class="toolbar-btn rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+        <i class="ri-filter-3-line text-lg"></i>
+        <span>Filter</span>
+        <i id="filterChevron" class="ri-arrow-down-s-line text-base transition-transform duration-300"></i>
+    </button>
+
+    {{-- 2. Search form --}}
+    <form action="{{ route('users.index') }}"
+          method="GET"
+          id="mainSearchForm"
+          class="toolbar-row">
+
+        @foreach (['name','email','date','dob','status','updated_from','updated_to','criteria'] as $param)
+            @if (request($param))
+                <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
+            @endif
+        @endforeach
+
+        {{-- Search input --}}
+        <div class="relative flex-1 min-w-[200px]">
+            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                <i class="ri-search-line text-lg"></i>
+            </span>
+            <input type="search"
+                   name="search"
+                   id="search"
+                   value="{{ request('search') }}"
+                   placeholder="Search users…"
+                   class="toolbar-input block w-full rounded-xl border border-gray-300 bg-white pl-10 pr-3 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500">
+        </div>
+
+        {{-- Search button --}}
+        @include('components.loading.button', [
+            'id'      => 'searchBtn',
+            'label'   => 'Search',
+            'loading' => 'Searching…',
+            'type'    => 'submit',
+            'variant' => 'primary',
+            'icon'    => 'ri-search-line',
+            'class'   => 'toolbar-btn min-w-[110px]',
+        ])
+
+        @if (request()->hasAny(['search','name','email','date','dob','status','updated_from','updated_to','criteria']))
+            <a href="{{ route('users.index') }}"
+               class="toolbar-btn rounded-xl border border-gray-300 bg-white px-4 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+                <i class="ri-close-line text-lg"></i>
+                <span class="hidden sm:inline">Clear</span>
+            </a>
+        @endif
+    </form>
+
+    {{-- 3. Download dropdown --}}
+    <div class="relative" id="downloadWrap">
+        <button type="button"
+                id="downloadToggle"
+                class="toolbar-btn rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+            <i class="ri-download-2-line text-lg text-indigo-500"></i>
+            <span class="hidden md:inline">Download</span>
+            <i class="ri-arrow-down-s-line text-base text-gray-400"></i>
+        </button>
+
+        <div id="downloadMenu"
+             class="absolute right-0 z-20 mt-2 hidden w-56 origin-top-right rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800">
+
+            @foreach ($downloadOptions as $dl)
+                @if ($dl['format'] === 'print')
+                    {{-- Print uses JS --}}
+                    <button type="button"
+                            onclick="window.print()"
+                            class="no-loader flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700">
+                        <i class="{{ $dl['icon'] }} {{ $dl['color'] }} w-4 text-center text-lg"></i>
+                        <span>{{ $dl['label'] }}</span>
+                    </button>
+                @else
+                    {{-- Download links --}}
+                    <a href="{{ route('users.export', array_merge(request()->query(), ['format' => $dl['format']])) }}"
+                       data-download
+                       data-loading-text="Preparing {{ strtoupper($dl['format']) }}…"
+                       class="download-item no-loader flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700">
+                        <i class="{{ $dl['icon'] }} {{ $dl['color'] }} w-4 text-center text-lg"></i>
+                        <span class="download-label">{{ $dl['label'] }}</span>
+                        <span class="spinner-btn ml-auto hidden">
+                            <svg class="h-4 w-4 animate-spin text-indigo-600" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25"/>
+                                <path fill="currentColor" class="opacity-90"
+                                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                            </svg>
+                        </span>
+                    </a>
+                @endif
+            @endforeach
+        </div>
+    </div>
+</div>
+
+{{-- ══════════════════════════════════════════════════════════════
+     COLLAPSIBLE FILTER PANEL
+     ══════════════════════════════════════════════════════════════ --}}
+<div id="filterPanel" class="filter-panel">
+    <form action="{{ route('users.index') }}"
+          method="GET"
+          id="filterForm"
+          data-loading="Applying filters…"
+          class="mb-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+
+        @if (request('search'))
+            <input type="hidden" name="search" value="{{ request('search') }}">
+        @endif
+
+        <div class="mb-4 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
+                    <i class="ri-filter-3-line text-lg"></i>
                 </span>
                 <div>
-                    <h2 class="text-lg font-bold text-gray-900 dark:text-white">Filters</h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Refine the user list</p>
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white">Advanced Filters</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Choose a criterion and refine your search</p>
                 </div>
             </div>
-
-            {{-- Filter form --}}
-            <form action="{{ route('users.index') }}" method="GET" id="sidebarFilterForm" class="space-y-5">
-
-                {{-- Preserve main search --}}
-                @if (request('search'))
-                    <input type="hidden" name="search" value="{{ request('search') }}">
-                @endif
-
-                {{-- NAME field --}}
-                <div>
-                    <label for="filter_name" class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        Name
-                    </label>
-                    <div class="relative">
-                        <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
-                            </svg>
-                        </span>
-                        <input
-                            type="text"
-                            name="name"
-                            id="filter_name"
-                            value="{{ request('name') }}"
-                            placeholder="Filter by name…"
-                            class="block w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500">
-                    </div>
-                </div>
-
-                {{-- EMAIL field --}}
-                <div>
-                    <label for="filter_email" class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        Email
-                    </label>
-                    <div class="relative">
-                        <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/>
-                            </svg>
-                        </span>
-                        <input
-                            type="text"
-                            name="email"
-                            id="filter_email"
-                            value="{{ request('email') }}"
-                            placeholder="Filter by email…"
-                            class="block w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500">
-                    </div>
-                </div>
-
-                {{-- LATE (DATE) filter field --}}
-                <div>
-                    <label for="filter_late" class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        Late (Last Modified)
-                    </label>
-                    <div class="relative">
-                        <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/>
-                            </svg>
-                        </span>
-                        <select
-                            name="late"
-                            id="filter_late"
-                            class="block w-full appearance-none rounded-xl border border-gray-300 bg-white py-2.5 pl-9 pr-9 text-sm text-gray-900 shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                            <option value="">All dates</option>
-                            <option value="7"   {{ request('late') == '7'   ? 'selected' : '' }}>Last 7 days</option>
-                            <option value="30"  {{ request('late') == '30'  ? 'selected' : '' }}>Last 30 days</option>
-                            <option value="90"  {{ request('late') == '90'  ? 'selected' : '' }}>Last 90 days</option>
-                            <option value="365" {{ request('late') == '365' ? 'selected' : '' }}>Last year</option>
-                            <option value="older" {{ request('late') == 'older' ? 'selected' : '' }}>Older than 1 year</option>
-                        </select>
-                        <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
-                            </svg>
-                        </span>
-                    </div>
-                    <p class="mt-1.5 text-xs text-gray-400 dark:text-gray-500">Filter by how recently the user was updated.</p>
-                </div>
-
-                {{-- Action buttons --}}
-                <div class="flex items-center gap-2 pt-1">
-                    <button type="submit"
-                        class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/>
-                        </svg>
-                        Apply
-                    </button>
-                    <a href="{{ route('users.index') }}"
-                        title="Reset filters"
-                        class="inline-flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/>
-                        </svg>
-                    </a>
-                </div>
-
-                {{-- Active filter chips --}}
-                @if (request('name') || request('email') || request('late'))
-                    <div class="border-t border-gray-200 pt-4 dark:border-gray-700">
-                        <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Active filters</p>
-                        <div class="flex flex-wrap gap-1.5">
-                            @if (request('name'))
-                                <span class="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
-                                    Name: {{ request('name') }}
-                                </span>
-                            @endif
-                            @if (request('email'))
-                                <span class="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
-                                    Email: {{ request('email') }}
-                                </span>
-                            @endif
-                            @if (request('late'))
-                                <span class="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
-                                    Late: {{ request('late') === 'older' ? '> 1 year' : 'Last ' . request('late') . ' days' }}
-                                </span>
-                            @endif
-                        </div>
-                    </div>
-                @endif
-            </form>
+            <button type="button" id="closeFilterBtn"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-200">
+                <i class="ri-close-line text-lg"></i>
+            </button>
         </div>
-    </aside>
 
-    {{-- ============================================================
-         MAIN CONTENT (Users list + search + table)
-         ============================================================ --}}
-    <div class="flex-1 min-w-0">
+        <div class="mb-4">
+            <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Search Criteria</p>
+            <div class="flex flex-wrap gap-2">
+                @php
+                    $criteria = request('criteria', 'name');
+                    $criterias = ['name' => 'Name', 'date' => 'Date', 'dob' => 'DOB', 'status' => 'Status', 'timestamp' => 'Timestamp'];
+                @endphp
+                @foreach ($criterias as $key => $label)
+                    <div class="relative">
+                        <input type="radio" name="criteria" id="criteria_{{ $key }}" value="{{ $key }}"
+                               class="criteria-radio" {{ $criteria === $key ? 'checked' : '' }}>
+                        <label for="criteria_{{ $key }}"
+                               class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-gray-700 hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-indigo-500 dark:hover:text-indigo-300">
+                            {{ $label }}
+                        </label>
+                    </div>
+                @endforeach
+            </div>
+        </div>
 
-        {{-- PAGE HEADER --}}
-        <header class="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-gray-200 pb-5 dark:border-gray-700">
-            <div>
-                <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-                    Users
-                </h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Manage all user accounts in the system
-                </p>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div class="criteria-field" data-criteria="name">
+                <label for="filter_name" class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Full Name / Username</label>
+                <input type="text" name="name" id="filter_name" value="{{ request('name') }}" placeholder="e.g. John Doe"
+                       class="block w-full rounded-xl border border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
             </div>
 
-            <a href="{{ route('users.create') }}"
-               class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-500/40 hover:brightness-105 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
-                </svg>
-                <span>Create User</span>
-            </a>
-        </header>
+            <div class="criteria-field" data-criteria="date">
+                <label for="filter_date" class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Specific Date</label>
+                <input type="date" name="date" id="filter_date" value="{{ request('date') }}"
+                       class="block w-full rounded-xl border border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            </div>
 
-        {{-- SEARCH + TOOLBAR --}}
-        <div class="mb-6 flex flex-wrap items-center gap-3">
-            <form action="{{ route('users.index') }}" method="GET" class="flex flex-1 min-w-[260px] items-center gap-2">
+            <div class="criteria-field" data-criteria="dob">
+                <label for="filter_dob" class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Date of Birth</label>
+                <input type="date" name="dob" id="filter_dob" value="{{ request('dob') }}"
+                       class="block w-full rounded-xl border border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            </div>
 
-                {{-- Preserve sidebar filters when using main search --}}
-                @if (request('name'))  <input type="hidden" name="name"  value="{{ request('name') }}">  @endif
-                @if (request('email')) <input type="hidden" name="email" value="{{ request('email') }}"> @endif
-                @if (request('late'))  <input type="hidden" name="late"  value="{{ request('late') }}">  @endif
+            <div class="criteria-field" data-criteria="status">
+                <label for="filter_status" class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</label>
+                <select name="status" id="filter_status"
+                        class="block w-full rounded-xl border border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                    <option value="">All statuses</option>
+                    @foreach (['active','inactive','pending','banned'] as $s)
+                        <option value="{{ $s }}" {{ request('status') === $s ? 'selected' : '' }}>{{ ucfirst($s) }}</option>
+                    @endforeach
+                </select>
+            </div>
 
-                <div class="relative flex-1">
-                    <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
-                        </svg>
-                    </span>
-                    <input
-                        type="search"
-                        name="search"
-                        id="search"
-                        value="{{ request('search') }}"
-                        placeholder="Search users by name, email, username…"
-                        class="block w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-3 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 dark:focus:border-indigo-400">
+            <div class="criteria-field md:col-span-2" data-criteria="timestamp">
+                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Timestamp Range (Updated)</label>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <input type="datetime-local" name="updated_from" value="{{ request('updated_from') }}"
+                           class="block w-full rounded-xl border border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                    <input type="datetime-local" name="updated_to" value="{{ request('updated_to') }}"
+                           class="block w-full rounded-xl border border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                 </div>
-
-                <button type="submit"
-                    class="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
-                    </svg>
-                    <span>Search</span>
-                </button>
-
-                @if (request('search') || request('name') || request('email') || request('late'))
-                    <a href="{{ route('users.index') }}"
-                       class="inline-flex items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                        Clear all
-                    </a>
-                @endif
-            </form>
+            </div>
         </div>
 
-        {{-- TABLE CARD --}}
-        <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-4 dark:border-gray-700">
+            <div class="flex items-center gap-2">
+                @include('components.loading.button', [
+                    'id'      => 'applyFiltersBtn',
+                    'label'   => 'Apply Filters',
+                    'loading' => 'Applying…',
+                    'type'    => 'submit',
+                    'variant' => 'indigo',
+                    'icon'    => 'ri-filter-3-fill',
+                ])
+                <a href="{{ route('users.index') }}"
+                   class="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                    <i class="ri-arrow-go-back-line text-lg"></i> Reset
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
 
-            <div class="overflow-x-auto">
-                <table id="userTable" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-900/40">
-                        <tr>
-                            <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">#</th>
-                            <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Username</th>
-                            <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Full Name</th>
-                            <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Email</th>
-                            <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Last Modified</th>
-                            <th scope="col" class="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Actions</th>
-                        </tr>
-                    </thead>
+{{-- ══════════════════════════════════════════════════════════════
+     TABLE CARD
+     ══════════════════════════════════════════════════════════════ --}}
+<div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+    <div class="overflow-x-auto">
+        <table id="userTable" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-900/40">
+                <tr>
+                    @foreach ($columns as $key => $label)
+                        @php $align = $key === 'actions' ? 'text-right' : 'text-left'; @endphp
+                        <th class="px-4 py-3 {{ $align }} text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            {{ $label }}
+                        </th>
+                    @endforeach
+                </tr>
+            </thead>
 
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                        @forelse ($users as $user)
-                            <tr class="group transition-colors hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20">
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                @forelse ($users as $user)
+                    <tr class="group transition-colors hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20">
+                        <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+                            {{ $users->firstItem() + $loop->index }}
+                        </td>
 
-                                {{-- Row number --}}
-                                <td class="whitespace-nowrap px-4 py-3.5 text-sm font-medium text-gray-500 dark:text-gray-400">
-                                    {{ $users->firstItem() + $loop->index }}
-                                </td>
+                        <td class="whitespace-nowrap px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-xs font-bold uppercase text-white">
+                                    {{ strtoupper(substr($user->username ?? 'U', 0, 2)) }}
+                                </span>
+                                <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ $user->username }}</span>
+                            </div>
+                        </td>
 
-                                {{-- Username --}}
-                                <td class="whitespace-nowrap px-4 py-3.5">
-                                    <div class="flex items-center gap-3">
-                                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-xs font-bold uppercase text-white">
-                                            {{ strtoupper(substr($user->username ?? 'U', 0, 2)) }}
-                                        </span>
-                                        <span class="text-sm font-semibold text-gray-900 dark:text-white">
-                                            {{ $user->username }}
-                                        </span>
-                                    </div>
-                                </td>
+                        <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                            {{ optional($user->profile)->first_name }} {{ optional($user->profile)->last_name }}
+                        </td>
 
-                                {{-- Full Name --}}
-                                <td class="whitespace-nowrap px-4 py-3.5 text-sm text-gray-700 dark:text-gray-300">
-                                    {{ $user->getInitialsAttribute() }}
-                                </td>
+                        <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                            <a href="mailto:{{ $user->email }}" class="hover:text-indigo-600 dark:hover:text-indigo-400">{{ $user->email }}</a>
+                        </td>
 
-                                {{-- Email --}}
-                                <td class="whitespace-nowrap px-4 py-3.5 text-sm text-gray-500 dark:text-gray-400">
-                                    <a href="mailto:{{ $user->email }}" class="hover:text-indigo-600 dark:hover:text-indigo-400">
-                                        {{ $user->email }}
+                        <td class="whitespace-nowrap px-4 py-3">
+                            @php
+                                $rawStatus = $user->status_label ?? 'active';
+                                if (is_object($rawStatus) && property_exists($rawStatus, 'value')) {
+                                    $status = $rawStatus->value;
+                                } elseif (is_object($rawStatus) && method_exists($rawStatus, '__toString')) {
+                                    $status = (string) $rawStatus;
+                                } elseif (is_array($rawStatus)) {
+                                    $status = $rawStatus['name'] ?? $rawStatus['value'] ?? 'active';
+                                } else {
+                                    $status = (string) $rawStatus;
+                                }
+                                $status = strtolower($status);
+                                $statusClasses = [
+                                    'active'   => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300',
+                                    'inactive' => 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+                                    'pending'  => 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
+                                    'banned'   => 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300',
+                                ];
+                                $statusClass = $statusClasses[$status] ?? $statusClasses['active'];
+                            @endphp
+                            <span class="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold {{ $statusClass }}">
+                                <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
+                                {{ ucfirst($status) }}
+                            </span>
+                        </td>
+
+                        <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                            {{ $user->roles->first()?->name ?? 'User' }}
+                        </td>
+
+                        <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                            <span title="{{ $user->updated_at }}">{{ $user->updated_at->diffForHumans() }}</span>
+                        </td>
+
+                        {{-- ══════════════════════════════════════════════════════
+                             ACTIONS — pulled from $actionButtons[$user->id]
+                             ══════════════════════════════════════════════════════ --}}
+                        <td class="whitespace-nowrap px-4 py-3">
+                            <div class="flex items-center justify-end gap-1">
+                                @php $actions = $actionButtons[$user->id] ?? []; @endphp
+
+                                {{-- View Profile --}}
+                                @isset($actions['view_profile'])
+                                    <button type="button"
+                                            title="{{ $actions['view_profile']['label'] }}"
+                                            onclick="openProfile({{ $user->id }})"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg {{ $actions['view_profile']['color'] }} transition-colors hover:bg-slate-100 dark:hover:bg-slate-800/40">
+                                        <i class="{{ $actions['view_profile']['icon'] }} text-base"></i>
+                                    </button>
+                                @endisset
+
+                                {{-- Make Employee --}}
+                                @isset($actions['make_employee'])
+                                    <button type="button"
+                                            title="{{ $actions['make_employee']['label'] }}"
+                                            onclick="makeEmployee({{ $user->id }}, '{{ addslashes($user->username) }}')"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg {{ $actions['make_employee']['color'] }} transition-colors hover:bg-emerald-100 dark:hover:bg-emerald-950/40">
+                                        <i class="{{ $actions['make_employee']['icon'] }} text-base"></i>
+                                    </button>
+                                @endisset
+
+                                {{-- Edit --}}
+                                @isset($actions['edit'])
+                                    <a href="{{ $actions['edit']['route'] }}"
+                                       title="{{ $actions['edit']['label'] }}"
+                                       class="inline-flex h-8 w-8 items-center justify-center rounded-lg {{ $actions['edit']['color'] }} transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-950/40">
+                                        <i class="{{ $actions['edit']['icon'] }} text-base"></i>
                                     </a>
-                                </td>
+                                @endisset
 
-                                {{-- Last modified --}}
-                                <td class="whitespace-nowrap px-4 py-3.5 text-sm text-gray-500 dark:text-gray-400">
-                                    <span title="{{ $user->updated_at }}">
-                                        {{ $user->updated_at->diffForHumans() }}
-                                    </span>
-                                </td>
-
-                                {{-- Actions --}}
-                                <td class="whitespace-nowrap px-4 py-3.5 text-right">
-                                    <div class="inline-flex items-center gap-1.5">
-                                        <a href="{{ route('users.edit', $user) }}"
-                                           title="Edit user"
-                                           aria-label="Edit {{ $user->username }}"
-                                           class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-indigo-600 transition-colors hover:bg-indigo-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:text-indigo-400 dark:hover:bg-indigo-950/40">
-                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zM19.5 7.125L16.862 4.487M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/>
-                                            </svg>
-                                        </a>
-
-                                        <button
-                                            type="button"
-                                            title="Delete user"
-                                            aria-label="Delete {{ $user->username }}"
+                                {{-- Delete --}}
+                                @isset($actions['delete'])
+                                    <button type="button"
+                                            title="{{ $actions['delete']['label'] }}"
                                             onclick="deleteData({{ $user->id }})"
-                                            class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 dark:text-red-400 dark:hover:bg-red-950/40">
-                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
-                                            </svg>
-                                        </button>
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg {{ $actions['delete']['color'] }} transition-colors hover:bg-red-100 dark:hover:bg-red-950/40">
+                                        <i class="{{ $actions['delete']['icon'] }} text-base"></i>
+                                    </button>
 
-                                        <form id="delete-form-{{ $user->id }}"
-                                              action="{{ route('users.destroy', $user) }}"
-                                              method="POST"
-                                              class="hidden">
-                                            @csrf
-                                            @method('DELETE')
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="px-4 py-16 text-center">
-                                    <div class="mx-auto flex max-w-sm flex-col items-center gap-3">
-                                        <span class="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500">
-                                            <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
-                                            </svg>
-                                        </span>
-                                        <div>
-                                            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">No users found</h3>
-                                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                                @if (request('search') || request('name') || request('email') || request('late'))
-                                                    No results match the current filters. Try adjusting them.
-                                                @else
-                                                    Get started by creating your first user.
-                                                @endif
-                                            </p>
-                                        </div>
-                                        @if (request('search') || request('name') || request('email') || request('late'))
-                                            <a href="{{ route('users.index') }}"
-                                               class="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500">
-                                                Clear filters
-                                            </a>
-                                        @else
-                                            <a href="{{ route('users.create') }}"
-                                               class="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500">
-                                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
-                                                </svg>
-                                                Create User
-                                            </a>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+                                    <form id="delete-form-{{ $user->id }}"
+                                          action="{{ $actions['delete']['route'] }}"
+                                          method="POST"
+                                          class="hidden">
+                                        @csrf
+                                        @method('DELETE')
+                                    </form>
+                                @endisset
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="{{ count($columns) }}" class="px-4 py-14 text-center">
+                            <div class="mx-auto flex max-w-sm flex-col items-center gap-3">
+                                <span class="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500">
+                                    <i class="ri-user-search-line text-3xl"></i>
+                                </span>
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">No users found</h3>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Try adjusting filters or create a new user.</p>
+                            </div>
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
 
-            {{-- Pagination --}}
-            @if ($users->hasPages())
-                <div class="border-t border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900/40">
-                    {{ $users->withQueryString()->links() }}
-                </div>
-            @endif
+    @if ($users->hasPages())
+        <div class="border-t border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900/40">
+            {{ $users->withQueryString()->links() }}
         </div>
+    @endif
+</div>
 
-        {{-- Result count --}}
-        <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">
-            Showing
-            <span class="font-semibold text-gray-700 dark:text-gray-300">{{ $users->firstItem() ?? 0 }}</span>
-            to
-            <span class="font-semibold text-gray-700 dark:text-gray-300">{{ $users->lastItem() ?? 0 }}</span>
-            of
-            <span class="font-semibold text-gray-700 dark:text-gray-300">{{ $users->total() }}</span>
-            users
-        </p>
+{{-- Result count --}}
+<p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+    Showing
+    <span class="font-semibold text-gray-700 dark:text-gray-300">{{ $users->firstItem() ?? 0 }}</span>
+    to
+    <span class="font-semibold text-gray-700 dark:text-gray-300">{{ $users->lastItem() ?? 0 }}</span>
+    of
+    <span class="font-semibold text-gray-700 dark:text-gray-300">{{ $users->total() }}</span>
+    users
+</p>
 
-    </div>{{-- /main content --}}
-</div>{{-- /flex wrapper --}}
+
+{{-- ══════════════════════════════════════════════════════════════
+     PROFILE MODAL — Modern Design
+     ══════════════════════════════════════════════════════════════ --}}
+@include('admin.pages.Users.profile_view_modal')
+
+{{-- ══════════════════════════════════════════════════════════════
+     MAKE-EMPLOYEE MODAL
+     ══════════════════════════════════════════════════════════════ --}}
+@include('admin.pages.Users.make_employee_modal')
+
+
+
+
+{{-- ══════════════════════════════════════════════════════════════
+     HIDDEN USER DATA
+     ══════════════════════════════════════════════════════════════ --}}
+<script id="usersData" type="application/json">
+{!! json_encode(
+    $users->map(function ($u) {
+        return [
+            'id'         => $u->id,
+            'username'   => $u->username,
+            'email'      => $u->email,
+            'first_name' => optional($u->profile)->first_name,
+            'last_name'  => optional($u->profile)->last_name,
+            'phone'      => optional($u->profile)->phone ?? null,
+            'address'    => optional($u->profile)->address ?? null,
+            'birthdate'  => optional($u->profile)->birthdate ?? null,
+            'employee'   => $u->employee ? [
+                'department' => optional($u->employee->department)->name,
+                'hire_date'  => $u->employee->date_hired,
+                'status'     => is_object($u->employee->status) ? ($u->employee->status->value ?? null) : $u->employee->status,
+            ] : null,
+            'edit_url'     => route('users.edit', $u->id),
+            'make_emp_url' => route('users.make-employee', $u->id),
+        ];
+    })->keyBy('id'),
+    JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+) !!}
+</script>
 
 @endsection
 
-@push('dashboard_script')
+{{-- ══════════════════════════════════════════════════════════════
+     PAGE SCRIPTS
+     ══════════════════════════════════════════════════════════════ --}}
+
 <script>
-    $(document).ready(function () {
-        // Initialize DataTables (set ordering false for # column if desired)
-        $('#userTable').DataTable({
-            "order": [],        // keep server-side order
-            "columnDefs": [
-                { "orderable": false, "targets": [0, 5] }  // # and Actions not sortable
-            ]
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ── 1. SEARCH BUTTON ──
+    const searchForm = document.getElementById('mainSearchForm');
+    if (searchForm) {
+        searchForm.addEventListener('submit', function () {
+            if (typeof window.setButtonLoading === 'function') {
+                window.setButtonLoading('searchBtn', true);
+            }
         });
+    }
 
-        // Confirm delete
-        window.deleteData = function (id) {
-            if (! confirm('Delete this user? This action cannot be undone.')) return;
-            document.getElementById('delete-form-' + id).submit();
-        };
+    // ── 2. DOWNLOADS ──
+    document.querySelectorAll('[data-download]').forEach(item => {
+        item.addEventListener('click', function () {
+            const spinner  = this.querySelector('.spinner-btn');
+            const label    = this.querySelector('.download-label');
+            const original = label.textContent;
 
-        // Auto-submit sidebar filter on Enter (already handled by form)
-        // Optional: debounce name/email inputs for live-feel
-        let debounceTimer;
-        $('#filter_name, #filter_email').on('input', function () {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                // Uncomment below for auto-submit after 600ms idle
-                // $('#sidebarFilterForm').submit();
-            }, 600);
+            spinner.classList.remove('hidden');
+            label.textContent = 'Downloading…';
+            if (typeof window.showLoader === 'function') {
+                window.showLoader(this.dataset.loadingText || 'Preparing download…');
+            }
+
+            setTimeout(() => {
+                if (typeof window.hideLoader === 'function') window.hideLoader();
+                spinner.classList.add('hidden');
+                label.textContent = original;
+            }, 2500);
         });
     });
+
+    // ── 3. FILTER PANEL toggle ──
+    const filterPanel = document.getElementById('filterPanel');
+    const toggleBtn   = document.getElementById('toggleFilterBtn');
+    const closeBtn    = document.getElementById('closeFilterBtn');
+    const chevron     = document.getElementById('filterChevron');
+
+    function openFilter() {
+        filterPanel.classList.add('is-open');
+        toggleBtn.setAttribute('aria-expanded', 'true');
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+    }
+    function closeFilter() {
+        filterPanel.classList.remove('is-open');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+    }
+    toggleBtn.addEventListener('click', () =>
+        filterPanel.classList.contains('is-open') ? closeFilter() : openFilter()
+    );
+    closeBtn.addEventListener('click', closeFilter);
+
+    @if (request()->hasAny(['name','email','date','dob','status','updated_from','updated_to']))
+        openFilter();
+    @endif
+
+    // ── 4. CRITERIA radio ──
+    const radios = document.querySelectorAll('.criteria-radio');
+    const fields = document.querySelectorAll('.criteria-field');
+
+    function syncCriteriaFields() {
+        const selected = document.querySelector('.criteria-radio:checked')?.value || 'name';
+        fields.forEach(f => {
+            f.style.display = (f.dataset.criteria === selected) ? '' : 'none';
+        });
+    }
+    radios.forEach(r => r.addEventListener('change', syncCriteriaFields));
+    syncCriteriaFields();
+
+    // ── 5. DOWNLOAD DROPDOWN ──
+    const dlToggle = document.getElementById('downloadToggle');
+    const dlMenu   = document.getElementById('downloadMenu');
+    const dlWrap   = document.getElementById('downloadWrap');
+
+    dlToggle.addEventListener('click', e => {
+        e.stopPropagation();
+        dlMenu.classList.toggle('hidden');
+    });
+    document.addEventListener('click', e => {
+        if (!dlWrap.contains(e.target)) dlMenu.classList.add('hidden');
+    });
+
+    // ── 6. DELETE ──
+    window.deleteData = function (id) {
+        if (!confirm('Delete this user? This action cannot be undone.')) return;
+        if (typeof window.showLoader === 'function') window.showLoader('Deleting user…');
+        document.getElementById('delete-form-' + id).submit();
+    };
+
+    // ── 7. PROFILE MODAL ──
+    const usersData    = JSON.parse(document.getElementById('usersData').textContent || '{}');
+    const profileModal = document.getElementById('profileModal');
+
+    window.openProfile = function (id) {
+        const user = usersData[id];
+        if (!user) return;
+
+        document.getElementById('profileLoading').classList.remove('hidden');
+        document.getElementById('profileContent').classList.add('hidden');
+
+        profileModal.classList.remove('hidden');
+        profileModal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+
+        setTimeout(() => {
+            const initials = (user.username || 'U').substring(0, 2).toUpperCase();
+            document.getElementById('profileAvatar').textContent = initials;
+
+            const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username;
+            document.getElementById('profileName').textContent     = fullName;
+            document.getElementById('profileUsername').textContent = '@' + user.username;
+
+            document.getElementById('profileEmail').textContent   = user.email   || '—';
+            document.getElementById('profilePhone').textContent   = user.phone   || '—';
+            document.getElementById('profileAddress').textContent = user.address || '—';
+
+            const empSection = document.getElementById('employeeSection');
+            if (user.employee) {
+                empSection.classList.remove('hidden');
+                document.getElementById('profileDepartment').textContent = user.employee.department || '—';
+                document.getElementById('profileHireDate').textContent   = user.employee.hire_date  || '—';
+                document.getElementById('profileBirthdate').textContent  = user.birthdate           || '—';
+                document.getElementById('profileEmpStatus').textContent  = user.employee.status
+                    ? user.employee.status.charAt(0).toUpperCase() + user.employee.status.slice(1)
+                    : '—';
+            } else {
+                empSection.classList.add('hidden');
+            }
+
+            document.getElementById('profileEditLink').href = user.edit_url;
+
+            document.getElementById('profileLoading').classList.add('hidden');
+            document.getElementById('profileContent').classList.remove('hidden');
+        }, 250);
+    };
+
+    window.closeProfile = function () {
+        profileModal.classList.add('hidden');
+        profileModal.classList.remove('flex');
+        document.body.style.overflow = '';
+    };
+
+    profileModal.addEventListener('click', e => {
+        if (e.target === profileModal) closeProfile();
+    });
+
+    // ── 8. MAKE EMPLOYEE modal ──
+    const makeEmpModal = document.getElementById('makeEmployeeModal');
+    const makeEmpForm  = document.getElementById('makeEmployeeForm');
+    const makeEmpName  = document.getElementById('makeEmployeeName');
+
+    window.makeEmployee = function (id, username) {
+        const user = usersData[id];
+        if (!user) return;
+        makeEmpName.textContent = username;
+        makeEmpForm.action = user.make_emp_url;
+        makeEmpModal.classList.remove('hidden');
+        makeEmpModal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    };
+
+    window.closeMakeEmployee = function () {
+        makeEmpModal.classList.add('hidden');
+        makeEmpModal.classList.remove('flex');
+        document.body.style.overflow = '';
+    };
+
+    makeEmpModal.addEventListener('click', e => {
+        if (e.target === makeEmpModal) closeMakeEmployee();
+    });
+
+    makeEmpForm.addEventListener('submit', function () {
+        if (typeof window.setButtonLoading === 'function') {
+            window.setButtonLoading('makeEmployeeSubmit', true);
+        }
+        if (typeof window.showLoader === 'function') {
+            window.showLoader('Creating employee record…');
+        }
+    });
+
+    // ── 9. ESC ──
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            closeFilter();
+            closeProfile();
+            closeMakeEmployee();
+        }
+    });
+});
 </script>
-@endpush
