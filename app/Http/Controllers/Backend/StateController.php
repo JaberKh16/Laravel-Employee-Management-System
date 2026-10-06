@@ -10,6 +10,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
+use App\Exports\StatesExport;
 
 class StateController extends Controller
 {
@@ -27,41 +30,94 @@ class StateController extends Controller
     }
 
 
-    /**
-     * Display a listing of the states.
-     */
     public function index(Request $request)
     {
         try {
-            $states = State::query()
-                ->with(['country'])
-                ->when($request->filled('search'), function ($query) use ($request) {
-                    $query->where(function ($sub) use ($request) {
-                        $sub->where('name', 'like', "%{$request->search}%")
-                            ->orWhere('state_code', 'like', "%{$request->search}%");
-                    });
-                })
-                ->when($request->filled('country_id'), function ($query) use ($request) {
-                    $query->where('country_id', $request->country_id);
-                })
-                ->latest('id')
+            $states = $this->buildFilteredQuery($request)
+                ->with('country')       // eager-load to avoid N+1 on the flag column
                 ->paginate(15)
                 ->withQueryString();
 
-            // Needed by the filter dropdown in the index view
-            $countries = Country::select('id', 'name')->orderBy('name')->get();
-
-            return view('admin.pages.State.index', compact('states', 'countries'));
-
-        } catch (Throwable $e) {
-            Log::error('Failed to load states index', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+            return view('admin.pages.State.index', [
+                'states'    => $states,
+                'countries' => Country::orderBy('name')->get(['id', 'name', 'country_code']),
             ]);
 
-            return redirect()
-                ->route('states.index')
-                ->with('error', 'Unable to load states. Please try again.');
+        } catch (Throwable $e) {
+            Log::error('Failed to load states', [
+                'error' => $e->getMessage(),
+                'file'  => $e->getFile(),
+                'line'  => $e->getLine(),
+            ]);
+
+            return redirect()->back()->with('error', 'Unable to load states. Please try again.');
+        }
+    }
+
+    protected function buildFilteredQuery(Request $request)
+    {
+        $query = State::query();
+
+        // Global search
+        if ($request->filled('search')) {
+            $s = trim($request->search);
+            $query->where(function ($q) use ($s) {
+                $q->where('name', 'like', "%{$s}%")
+                ->orWhere('state_code', 'like', "%{$s}%");
+            });
+        }
+
+        // Advanced filters
+        if ($request->filled('name')) {
+            $query->where('name', 'like', '%' . trim($request->name) . '%');
+        }
+        if ($request->filled('code')) {
+            $query->where('state_code', 'like', strtoupper(trim($request->code)) . '%');
+        }
+        if ($request->filled('country_id')) {
+            $query->where('country_id', (int) $request->country_id);
+        }
+        if ($request->filled('created_from')) {
+            $query->whereDate('created_at', '>=', $request->created_from);
+        }
+        if ($request->filled('created_to')) {
+            $query->whereDate('created_at', '<=', $request->created_to);
+        }
+
+        // Sorting
+        $sortable  = ['name', 'state_code', 'country_id', 'created_at', 'updated_at', 'id'];
+        $sort      = in_array($request->sort, $sortable, true) ? $request->sort : 'id';
+        $direction = $request->direction === 'asc' ? 'asc' : 'desc';
+
+        return $query->orderBy($sort, $direction);
+    }
+
+    public function export(Request $request)
+    {
+        try {
+            $format = $request->get('format', 'csv');
+            $query  = $this->buildFilteredQuery($request)->with('country');
+
+            $filename = 'states-' . now()->format('Y-m-d_His');
+
+            return match ($format) {
+                'csv', 'xlsx' => \Maatwebsite\Excel\Facades\Excel::download(
+                                    new \App\Exports\StatesExport($query),
+                                    "{$filename}.{$format}"
+                                ),
+                'pdf'  => \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.states', [
+                            'states' => (clone $query)->get(),
+                        ])->download("{$filename}.pdf"),
+                'json' => response()->json((clone $query)->get()),
+                default => back()->with('error', 'Invalid export format.'),
+            };
+        } catch (\Throwable $e) {
+            \Log::error('Failed to export states', [
+                'error' => $e->getMessage(),
+                'line'  => $e->getLine(),
+            ]);
+
+            return back()->with('error', 'Unable to export states.');
         }
     }
 

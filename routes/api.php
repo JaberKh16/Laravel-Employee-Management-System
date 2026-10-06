@@ -3,6 +3,8 @@
 use App\Http\Controllers\API\EmployeeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Models\State;
+use App\Models\City;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,15 +28,21 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // ─── Location cascade endpoints ────────────────────────────
 Route::middleware(['auth'])->prefix('api')->group(function () {
     Route::get('states', fn (Request $r) =>
-        \App\Models\State::where('country_id', $r->country_id)->orderBy('name')->get(['id', 'name'])
+        State::where('country_id', $r->country_id)->orderBy('name')->get(['id', 'name'])
     );
     Route::get('cities', fn (Request $r) =>
-        \App\Models\City::where('state_id', $r->state_id)->orderBy('name')->get(['id', 'name'])
+        City::where('state_id', $r->state_id)->orderBy('name')->get(['id', 'name'])
     );
 });
 
 
 // employe resource api
+Route::get('employees/filter-meta', [EmployeeController::class, 'filterMeta'])->name('employees.filter-meta');
+Route::get('employees/export',      [EmployeeController::class, 'export'])->name('employees.export');
+
+Route::get('employees',             [EmployeeController::class, 'index'])->name('employees.index');
+Route::get('employees/{employee}',  [EmployeeController::class, 'show'])->name('employees.show');
+Route::delete('employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
 Route::apiResource('employees', EmployeeController::class);
 
 // fetch dependent fields

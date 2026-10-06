@@ -214,11 +214,11 @@
     </div>
 @endsection
 
-@push('dashboard_script')
+
 <script src="http://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
 <script>
     $(document).ready( function () {
-    $('#permissionTable').DataTable();
-} );
+        $('#permissionTable').DataTable();
+    } );
 </script>
-@endpush
+

@@ -6,13 +6,17 @@ use App\Http\Casts\EnumCast;
 use App\Http\Enums\EmployeeStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Employee extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
+
+    protected $table = 'employees';   
 
     protected $fillable = [
         'user_id',
+        'job_profile_id',
         'address',
         'department_id',
         'country_id',
@@ -20,18 +24,19 @@ class Employee extends Model
         'state_id',
         'zip_code',
         'birthdate',
-        'date_hired',
+        'hired_date',
+        'status',
     ];
 
     protected $casts = [
-        'status' => EnumCast::class . ':' . EmployeeStatus::class,
+        'status'     => EnumCast::class . ':' . EmployeeStatus::class,
+        'birthdate'  => 'date',
+        'hired_date' => 'date',
     ];
 
-    public function isEmployed(): bool
-    {
-        return in_array($this->status, EmployeeStatus::employed(), true);
-    }
-
+    // ═══════════════════════════════════════════════════════════
+    // SCOPES
+    // ═══════════════════════════════════════════════════════════
     public function scopeEmployed($query)
     {
         return $query->whereIn('status', array_map(
@@ -40,14 +45,47 @@ class Employee extends Model
         ));
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // HELPERS
+    // ═══════════════════════════════════════════════════════════
+    public function isEmployed(): bool
+    {
+        return in_array($this->status, EmployeeStatus::employed(), true);
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        $p = $this->user?->profile;
+        return trim(($p?->first_name ?? '') . ' ' . ($p?->last_name ?? ''));
+    }
+
+    public function getInitialsAttribute(): string
+    {
+        $f = mb_substr($this->user?->profile?->first_name ?? '', 0, 1);
+        $l = mb_substr($this->user?->profile?->last_name  ?? '', 0, 1);
+        return mb_strtoupper($f . $l) ?: 'E';
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // RELATIONS
+    // ═══════════════════════════════════════════════════════════
+
+    /** One-to-one: each employee has exactly one job profile. */
+    public function jobProfile()
+    {
+        return $this->hasOne(JobProfile::class, 'id', 'job_profile_id');
+    }
+
+    /** The user account tied to this employee. */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /** Direct department (fallback if not using jobProfile->department). */
     public function department()
     {
         return $this->belongsTo(Department::class)->withDefault();
-    }
-
-    public function city()
-    {
-        return $this->belongsTo(City::class)->withDefault();
     }
 
     public function country()
@@ -60,8 +98,8 @@ class Employee extends Model
         return $this->belongsTo(State::class)->withDefault();
     }
 
-    public function user()
+    public function city()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(City::class)->withDefault();
     }
 }

@@ -8,6 +8,8 @@
 
     <div class="mx-auto max-w-2xl">
 
+        {{-- @include('components.flash_message') --}}
+
         {{-- ============================================================
              PAGE HEADER
              ============================================================ --}}
@@ -61,7 +63,6 @@
                            type="text"
                            name="name"
                            value="{{ old('name') }}"
-                           required
                            autocomplete="off"
                            autofocus
                            placeholder="e.g. United States"
@@ -94,7 +95,6 @@
                                type="text"
                                name="country_code"
                                value="{{ old('country_code') }}"
-                               required
                                autocomplete="off"
                                maxlength="3"
                                placeholder="US"
@@ -161,37 +161,36 @@
     </div>
 @endsection
 
-@push('dashboard_script')
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const codeInput     = document.getElementById('country_code');
-            const flagPreview   = document.getElementById('flag-preview');
-            const flagPlaceholder = document.getElementById('flag-placeholder');
 
-            // Auto-uppercase + strip non-letters + limit to 3 chars
-            codeInput?.addEventListener('input', (e) => {
-                e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
-                updateFlag(e.target.value);
-            });
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const codeInput     = document.getElementById('country_code');
+        const flagPreview   = document.getElementById('flag-preview');
+        const flagPlaceholder = document.getElementById('flag-placeholder');
 
-            // Live flag preview
-            function updateFlag(code) {
-                if (! flagPreview || ! flagPlaceholder) return;
-
-                if (code.length === 2) {
-                    flagPreview.src = `https://flagcdn.com/w80/${code.toLowerCase()}.png`;
-                    flagPreview.alt = `${code} flag`;
-                } else {
-                    flagPreview.src = '';
-                    flagPreview.classList.add('hidden');
-                    flagPlaceholder.classList.remove('hidden');
-                }
-            }
-
-            // Run on load in case of old() value
-            if (codeInput?.value) {
-                updateFlag(codeInput.value);
-            }
+        // Auto-uppercase + strip non-letters + limit to 3 chars
+        codeInput?.addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
+            updateFlag(e.target.value);
         });
-    </script>
-@endpush
+
+        // Live flag preview
+        function updateFlag(code) {
+            if (! flagPreview || ! flagPlaceholder) return;
+
+            if (code.length === 2) {
+                flagPreview.src = `https://flagcdn.com/w80/${code.toLowerCase()}.png`;
+                flagPreview.alt = `${code} flag`;
+            } else {
+                flagPreview.src = '';
+                flagPreview.classList.add('hidden');
+                flagPlaceholder.classList.remove('hidden');
+            }
+        }
+
+        // Run on load in case of old() value
+        if (codeInput?.value) {
+            updateFlag(codeInput.value);
+        }
+    });
+</script>

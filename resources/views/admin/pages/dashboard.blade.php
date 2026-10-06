@@ -167,7 +167,7 @@
     </section>
 
     {{-- Sweet Alert --}}
-    @include('components.sweet-alert')
+    {{-- @include('components.sweet-alert') --}}
 
     {{-- Stat Cards --}}
     @include('admin.partials._stats-cards')

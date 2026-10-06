@@ -10,6 +10,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Http\Enums\ActiveStatus;
 use Illuminate\Validation\Rule;
+use App\Http\Enums\DepartmentStatus;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
+use App\Exports\DepartmentsExport;
 
 class DepartmentController extends Controller
 {
@@ -21,25 +25,84 @@ class DepartmentController extends Controller
         // $this->middleware('permission:department-delete', ['only' => ['destroy']]);
     }
 
- 
-    public function index(Request $request)
+    // ═══════════════════════════════════════════════════════════
+    // BUILD FILTERED QUERY (shared by index + export)
+    // ═══════════════════════════════════════════════════════════
+    /**
+     * Apply all filters, search, and sorting to the Department query.
+     *
+     * Returns an Eloquent Builder — NOT a Collection. Callers decide
+     * whether to ->paginate(), ->get(), or stream via an export class.
+     */
+    protected function buildFilteredQuery(Request $request)
     {
         $query = Department::query();
 
+        // ── Global search (name OR description)
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
         }
 
-        $departments = $query
-            ->latest('id')
-            ->paginate(10)
-            ->withQueryString();
+        // ── Advanced filter: name
+        if ($request->filled('name')) {
+            $query->where('name', 'like', '%' . trim($request->name) . '%');
+        }
 
-        return view('admin.pages.Department.index', [
-            'departments'      => $departments,
-            'departmentStatus'=> ActiveStatus::cases()
-        ]);
+        // ── Advanced filter: floor
+        if ($request->filled('floor')) {
+            $query->where('floor', 'like', '%' . trim($request->floor) . '%');
+        }
+
+        // ── Advanced filter: status (enum backed value)
+        if ($request->filled('status')) {
+            $query->where('status', (int) $request->status);
+        }
+
+        // ── Advanced filter: created date range
+        if ($request->filled('created_from')) {
+            $query->whereDate('created_at', '>=', $request->created_from);
+        }
+        if ($request->filled('created_to')) {
+            $query->whereDate('created_at', '<=', $request->created_to);
+        }
+
+        // ── Sorting (whitelist to prevent SQL injection)
+        $sortable  = ['name', 'floor', 'status', 'created_at', 'updated_at', 'id'];
+        $sort      = in_array($request->sort, $sortable, true) ? $request->sort : 'id';
+        $direction = $request->direction === 'asc' ? 'asc' : 'desc';
+
+        return $query->orderBy($sort, $direction);
     }
+ 
+    public function index(Request $request)
+    {
+        try {
+            $departments = $this->buildFilteredQuery($request)
+                ->paginate(15)
+                ->withQueryString();
+
+            return view('admin.pages.Department.index', [
+                'departments'      => $departments,
+                'departmentStatus' => DepartmentStatus::cases(),
+            ]);
+
+        } catch (Throwable $e) {
+            Log::error('Failed to load departments list', [
+                'error'   => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+                'user_id' => auth()->id(),
+            ]);
+
+            return redirect()->back()
+                ->with('error', 'Unable to load departments. Please try again.');
+        }
+    }
+
 
    
     public function create()
@@ -268,6 +331,37 @@ class DepartmentController extends Controller
             notify()->error('Could not update status.', 'Error', 'topRight');
             return redirect()->route('departments.index')
                 ->with('error', 'Could not update status.');
+        }
+    }
+
+    public function export(Request $request)
+    {
+        try {
+            $format = $request->get('format', 'csv');
+            $query  = $this->buildFilteredQuery($request);
+
+            $filename = 'departments-' . now()->format('Y-m-d_His');
+
+            return match ($format) {
+                'csv'   => Excel::download(new DepartmentsExport($query), "{$filename}.csv"),
+                'xlsx'  => Excel::download(new DepartmentsExport($query), "{$filename}.xlsx"),
+                'pdf'   => PDF::loadView('exports.departments', [
+                                'departments' => (clone $query)->get(),
+                            ])->download("{$filename}.pdf"),
+                'json'  => response()->json((clone $query)->get()),
+                default => back()->with('error', 'Invalid export format.'),
+            };
+
+        } catch (Throwable $e) {
+            Log::error('Failed to export departments', [
+                'error'  => $e->getMessage(),
+                'file'   => $e->getFile(),
+                'line'   => $e->getLine(),
+                'format' => $request->get('format'),
+                'user_id' => auth()->id(),
+            ]);
+
+            return back()->with('error', 'Unable to export departments.');
         }
     }
 }

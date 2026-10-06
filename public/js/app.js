@@ -27860,10 +27860,10 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _flowbite_init__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./flowbite-init */ "./resources/js/flowbite-init.js");
 /* harmony import */ var _theme_toggle__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./theme-toggle */ "./resources/js/theme-toggle.js");
-/* harmony import */ var vue__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! vue */ "./node_modules/vue/dist/vue.esm-bundler.js");
-/* harmony import */ var _router__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./router */ "./resources/js/router/index.js");
-/* harmony import */ var _pages_Employee_Index_vue__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./pages/Employee/Index.vue */ "./resources/js/pages/Employee/Index.vue");
-/* harmony import */ var _sidebar__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./sidebar */ "./resources/js/sidebar.js");
+/* harmony import */ var _sidebar__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./sidebar */ "./resources/js/sidebar.js");
+/* harmony import */ var vue__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! vue */ "./node_modules/vue/dist/vue.esm-bundler.js");
+/* harmony import */ var _router__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./router */ "./resources/js/router/index.js");
+/* harmony import */ var _pages_Employee_Index_vue__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./pages/Employee/Index.vue */ "./resources/js/pages/Employee/Index.vue");
 /**
  * First we will load all of this project's JavaScript dependencies which
  * includes Vue and other libraries. It is a great starting point when
@@ -27871,6 +27871,7 @@ __webpack_require__.r(__webpack_exports__);
  */
 
 __webpack_require__(/*! ./bootstrap */ "./resources/js/bootstrap.js");
+
 
 
 
@@ -27896,12 +27897,12 @@ __webpack_require__(/*! ./bootstrap */ "./resources/js/bootstrap.js");
 
 // sidebar script (plain JS, framework-agnostic)
 
-(0,_sidebar__WEBPACK_IMPORTED_MODULE_5__.initSidebar)();
-var app = (0,vue__WEBPACK_IMPORTED_MODULE_2__.createApp)({});
+(0,_sidebar__WEBPACK_IMPORTED_MODULE_2__.initSidebar)();
+var app = (0,vue__WEBPACK_IMPORTED_MODULE_3__.createApp)({});
 
 // Register global components if you still need them
-app.component('employee-index', _pages_Employee_Index_vue__WEBPACK_IMPORTED_MODULE_4__["default"]);
-app.use(_router__WEBPACK_IMPORTED_MODULE_3__["default"]);
+app.component('employee-index', _pages_Employee_Index_vue__WEBPACK_IMPORTED_MODULE_5__["default"]);
+app.use(_router__WEBPACK_IMPORTED_MODULE_4__["default"]);
 app.mount('#app');
 
 /***/ }),

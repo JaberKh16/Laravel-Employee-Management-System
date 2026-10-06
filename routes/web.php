@@ -49,8 +49,13 @@ Route::middleware(['auth'])->group(function () {
         Route::put('profile/update', [UserController::class, 'profileUpdate'])->name('users.profile.update');
 
         // ── Geo ───────────────────────────────────────────────
+        // routes/web.php
+        Route::get('countries/export', [CountryController::class, 'export'])->name('countries.export');
         Route::resource('countries', CountryController::class);
+        Route::get('cities/export', [CityController::class, 'export'])->name('cities.export');
         Route::resource('cities', CityController::class);
+
+        Route::get('states/export', [StateController::class, 'export'])->name('states.export');
         Route::resource('states', StateController::class);
 
      
@@ -63,6 +68,7 @@ Route::middleware(['auth'])->group(function () {
         // ── Departments ───────────────────────────────────────
         Route::patch('departments/{department}/status', [DepartmentController::class, 'updateStatus'])
             ->name('departments.update-status');
+        Route::get('departments/export', [DepartmentController::class, 'export'])->name('departments.export');
         Route::resource('departments', DepartmentController::class);
 
         // ── Access control ────────────────────────────────────

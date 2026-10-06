@@ -145,14 +145,13 @@
     </div>
 @endsection
 
-@push('dashboard_script')
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Auto-uppercase the country code as user types
-            const codeInput = document.getElementById('country_code');
-            codeInput?.addEventListener('input', (e) => {
-                e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
-            });
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Auto-uppercase the country code as user types
+        const codeInput = document.getElementById('country_code');
+        codeInput?.addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
         });
-    </script>
-@endpush
+    });
+</script>

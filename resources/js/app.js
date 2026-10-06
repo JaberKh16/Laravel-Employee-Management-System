@@ -9,6 +9,7 @@ require('./bootstrap');
 
 import './flowbite-init';
 import './theme-toggle';
+import './sidebar'
 
 
 

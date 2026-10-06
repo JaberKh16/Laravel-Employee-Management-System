@@ -111,6 +111,7 @@
     @include('components.loading.overlay')
     @include('admin.partials._dashboard_animation_script')
 
+     @stack('dashboard_script')
     @stack('scripts')
 </body>
 </html>

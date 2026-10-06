@@ -11,6 +11,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
+use App\Exports\CitiesExport;
 
 class CityController extends Controller
 {
@@ -31,39 +34,134 @@ class CityController extends Controller
     /**
      * Display a listing of the cities.
      */
+    // public function index(Request $request)
+    // {
+    //     try {
+    //         $cities = City::query()
+    //             ->with(['state.country'])          // eager-load the full chain
+    //             ->when($request->filled('search'), function ($query) use ($request) {
+    //                 $query->where('name', 'like', "%{$request->search}%");
+    //             })
+    //             ->when($request->filled('state_id'), function ($query) use ($request) {
+    //                 $query->where('state_id', $request->state_id);
+    //             })
+    //             ->latest('id')
+    //             ->paginate(15)
+    //             ->withQueryString();
+
+    //         // Needed by the state filter dropdown in the index view.
+    //         // Eager-load country so each option can render "State — Country".
+    //         $states = State::with('country')
+    //             ->select('id', 'name', 'country_id')
+    //             ->orderBy('name')
+    //             ->get();
+
+    //         return view('admin.pages.City.index', compact('cities', 'states'));
+
+    //     } catch (Throwable $e) {
+    //         Log::error('Failed to load cities index', [
+    //             'error' => $e->getMessage(),
+    //             'trace' => $e->getTraceAsString(),
+    //         ]);
+
+    //         return redirect()
+    //             ->route('cities.index')
+    //             ->with('error', 'Unable to load cities. Please try again.');
+    //     }
+    // }
+
     public function index(Request $request)
     {
         try {
-            $cities = City::query()
-                ->with(['state.country'])          // eager-load the full chain
-                ->when($request->filled('search'), function ($query) use ($request) {
-                    $query->where('name', 'like', "%{$request->search}%");
-                })
-                ->when($request->filled('state_id'), function ($query) use ($request) {
-                    $query->where('state_id', $request->state_id);
-                })
-                ->latest('id')
+            $cities = $this->buildFilteredQuery($request)
+                ->with(['state.country'])      // eager-load both relations (avoids N+1)
                 ->paginate(15)
                 ->withQueryString();
 
-            // Needed by the state filter dropdown in the index view.
-            // Eager-load country so each option can render "State — Country".
-            $states = State::with('country')
-                ->select('id', 'name', 'country_id')
-                ->orderBy('name')
-                ->get();
-
-            return view('admin.pages.City.index', compact('cities', 'states'));
-
-        } catch (Throwable $e) {
-            Log::error('Failed to load cities index', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+            return view('admin.pages.City.index', [
+                'cities'    => $cities,
+                'states'    => State::with('country')->orderBy('name')->get(['id', 'name', 'country_id']),
+                'countries' => Country::orderBy('name')->get(['id', 'name']),
             ]);
 
-            return redirect()
-                ->route('cities.index')
-                ->with('error', 'Unable to load cities. Please try again.');
+        } catch (Throwable $e) {
+            Log::error('Failed to load cities', [
+                'error' => $e->getMessage(),
+                'file'  => $e->getFile(),
+                'line'  => $e->getLine(),
+            ]);
+
+            return redirect()->back()->with('error', 'Unable to load cities. Please try again.');
+        }
+    }
+
+    protected function buildFilteredQuery(Request $request)
+    {
+        $query = City::query();
+
+        // Global search
+        if ($request->filled('search')) {
+            $s = trim($request->search);
+            $query->where('name', 'like', "%{$s}%");
+        }
+
+        // Advanced filters
+        if ($request->filled('name')) {
+            $query->where('name', 'like', '%' . trim($request->name) . '%');
+        }
+
+        if ($request->filled('state_id')) {
+            $query->where('state_id', (int) $request->state_id);
+        }
+
+        if ($request->filled('country_id')) {
+            // Filter cities whose parent state belongs to this country
+            $query->whereHas('state', function ($q) use ($request) {
+                $q->where('country_id', (int) $request->country_id);
+            });
+        }
+
+        if ($request->filled('created_from')) {
+            $query->whereDate('created_at', '>=', $request->created_from);
+        }
+        if ($request->filled('created_to')) {
+            $query->whereDate('created_at', '<=', $request->created_to);
+        }
+
+        // Sorting
+        $sortable  = ['name', 'state_id', 'created_at', 'updated_at', 'id'];
+        $sort      = in_array($request->sort, $sortable, true) ? $request->sort : 'id';
+        $direction = $request->direction === 'asc' ? 'asc' : 'desc';
+
+        return $query->orderBy($sort, $direction);
+    }
+
+    public function export(Request $request)
+    {
+        try {
+            $format = $request->get('format', 'csv');
+            $query  = $this->buildFilteredQuery($request)->with('state.country');
+
+            $filename = 'cities-' . now()->format('Y-m-d_His');
+
+            return match ($format) {
+                'csv', 'xlsx' => Excel::download(
+                                    new CitiesExport($query),
+                                    "{$filename}.{$format}"
+                                ),
+                'pdf'  => Pdf::loadView('exports.cities', [
+                            'cities' => (clone $query)->get(),
+                        ])->download("{$filename}.pdf"),
+                'json' => response()->json((clone $query)->get()),
+                default => back()->with('error', 'Invalid export format.'),
+            };
+        } catch (\Throwable $e) {
+            \Log::error('Failed to export cities', [
+                'error' => $e->getMessage(),
+                'line'  => $e->getLine(),
+            ]);
+
+            return back()->with('error', 'Unable to export cities.');
         }
     }
 
