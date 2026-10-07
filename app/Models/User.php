@@ -19,6 +19,7 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes;
 
     protected $table = 'users';
+
     protected $fillable = [
         'username',
         'email',
@@ -88,7 +89,7 @@ class User extends Authenticatable
 
     public function getStatusLabelAttribute(): string
     {
-        $status = $this->status;   // cast → ActiveStatus enum (or null)
+        $status = $this->status;
 
         if ($status instanceof ActiveStatus) {
             return $status->label();

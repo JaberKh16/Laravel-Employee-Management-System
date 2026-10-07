@@ -70,19 +70,18 @@ class Employee extends Model
     // RELATIONS
     // ═══════════════════════════════════════════════════════════
 
-    /** One-to-one: each employee has exactly one job profile. */
     public function jobProfile()
     {
         return $this->hasOne(JobProfile::class, 'id', 'job_profile_id');
     }
 
-    /** The user account tied to this employee. */
+
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    /** Direct department (fallback if not using jobProfile->department). */
+
     public function department()
     {
         return $this->belongsTo(Department::class)->withDefault();
