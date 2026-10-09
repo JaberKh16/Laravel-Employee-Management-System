@@ -91,6 +91,21 @@ return [
             'prefix_indexes' => true,
         ],
 
+        // set up a separate connection for TimescaleDB (PostgreSQL extension)
+        // 'timescale' => [
+        //     'driver' => 'pgsql',
+        //     'host' => env('DB_HOST', '127.0.0.1'),
+        //     'port' => env('DB_PORT', '3312'),
+        //     'database' => env('DB_DATABASE', 'laravel'),
+        //     'username' => env('DB_USERNAME', 'laravel'),
+        //     'password' => env('DB_PASSWORD', ''),
+        //     'charset' => 'utf8',
+        //     'prefix' => '',
+        //     'schema' => 'public',
+        //     'sslmode' => 'prefer',
+        //     'search_path' => 'public',
+        // ],
+
     ],
 
     /*

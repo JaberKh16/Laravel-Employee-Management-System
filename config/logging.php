@@ -1,5 +1,6 @@
 <?php
 
+use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -100,6 +101,43 @@ return [
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],
+
+        // timestamp log
+        'timestamp_log' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/timestamp_log.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 30,                    // keep 30 days
+            'replace_placeholders' => true,
+            'formatter' => LineFormatter::class,
+            'formatter_with' => [
+                'format' => "[%datetime%] %channel%.%level_name%: %message% %context% %extra%\n",
+                'dateFormat' => 'Y-m-d H:i:s',
+                'allowInlineLineBreaks' => true,
+                'ignoreEmptyContextAndExtra' => true,
+            ],
+        ],
+
+
+        'profile' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/profile.log'),
+            'level' => 'info',
+            'days' => 30,
+        ],
+
+        'payments' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/payments.log'),
+            'level' => 'debug',
+            'days' => 90,
+        ],
+
+
+        // usage
+        // Log::channel('timestamp_log')->info('User logged in', ['user_id' => 1]);
+        // Log::channel('profile')->info('Profile updated', ['user_id' => $user->id]);
+        // Log::channel('payments')->error('Charge failed', ['order' => $id]);
     ],
 
 ];

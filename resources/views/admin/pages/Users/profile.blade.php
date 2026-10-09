@@ -1,9 +1,8 @@
 @extends('admin.layout.main')
 
 @push('dashboard_style')
-
     <style>
-        /* Select2 — Flowbite skin */
+        /* ---------- Select2 — Flowbite skin ---------- */
         .select2-container { width: 100% !important; }
         .select2-container--default .select2-selection--single {
             height: 42px;
@@ -61,6 +60,7 @@
             transition: transform 0.15s ease, border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
         }
 
+        /* ---------- CKEditor dark mode ---------- */
         .dark .ck.ck-editor__main > .ck-editor__editable {
             background-color: #1f2937;
             color: #f3f4f6;
@@ -80,7 +80,8 @@
 
 @section('dashboard_content')
 @php
-    $profile   = $user->profile;
+    $profile = $user->profile;
+
     $countries = $countries ?? collect();
     $states    = $states    ?? collect();
     $cities    = $cities    ?? collect();
@@ -88,9 +89,24 @@
     $selectedCountry = old('country_id', $profile->country_id ?? '');
     $selectedState   = old('state_id',   $profile->state_id   ?? '');
     $selectedCity    = old('city_id',    $profile->city_id    ?? '');
+
+    // Null-safe profile access
+    $firstName  = optional($profile)->first_name ?? '';
+    $middleName = optional($profile)->middle_name ?? '';
+    $lastName   = optional($profile)->last_name ?? '';
+    $avatarPath = optional($profile)->avatar;
+
+    $avatarUrl = $avatarPath
+        ? asset('storage/' . $avatarPath)
+        : 'https://ui-avatars.com/api/?name=' . urlencode(trim($firstName . ' ' . $lastName)) . '&background=6366f1&color=fff&size=128';
+
+    $bioValue = old('bio', optional($profile)->bio ?? '');
+    $bioLength = mb_strlen(strip_tags($bioValue));
 @endphp
 
 <div class="mx-auto max-w-5xl">
+
+    
 
     {{-- ============================================================
          PAGE HEADER
@@ -133,7 +149,7 @@
                         {{-- Avatar --}}
                         <div class="relative">
                             <img id="avatarPreview"
-                                 src="{{ $profile && $profile->avatar ? asset('storage/' . $profile->avatar) : 'https://ui-avatars.com/api/?name=' . urlencode($user->first_name . ' ' . $user->last_name) . '&background=6366f1&color=fff&size=128' }}"
+                                 src="{{ $avatarUrl }}"
                                  alt="Avatar"
                                  class="h-28 w-28 rounded-2xl border-4 border-white object-cover shadow-lg dark:border-gray-800">
 
@@ -144,21 +160,30 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/>
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"/>
                                 </svg>
-                                <input id="avatarInput" type="file" name="avatar" accept="image/*" class="hidden">
+                                <input id="avatarInput"
+                                       type="file"
+                                       name="avatar"
+                                       accept="image/*"
+                                       class="hidden"
+                                       data-max-bytes="10485760">
                             </label>
                         </div>
 
                         <div class="pb-1">
                             <h2 class="text-xl font-bold text-gray-900 dark:text-white">
-                                {{ $profile->first_name }} {{ $profile->last_name }}
+                                {{ $firstName }} {{ $lastName }}
                             </h2>
                             <p class="text-sm text-gray-500 dark:text-gray-400">{{ $user->email }}</p>
                         </div>
                     </div>
                 </div>
+
+                {{-- Avatar errors (server-side + JS-side) --}}
                 @error('avatar')
                     <p class="mt-3 text-xs font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
                 @enderror
+                <p id="avatarError" class="mt-3 hidden text-xs font-medium text-red-600 dark:text-red-400"></p>
+                <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Max 10 MB · JPG, PNG, or WebP</p>
             </div>
         </div>
 
@@ -179,7 +204,8 @@
                         Username <span class="text-red-500">*</span>
                     </label>
                     <input id="username" type="text" name="username"
-                           value="{{ old('username', $user->username) }}" 
+                           value="{{ old('username', $user->username) }}"
+                           required
                            class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
                                   @error('username') border-red-500 focus:border-red-500 focus:ring-red-500/30
                                   @else border-gray-300 focus:border-indigo-500 dark:border-gray-600
@@ -195,7 +221,8 @@
                         Email Address <span class="text-red-500">*</span>
                     </label>
                     <input id="email" type="email" name="email"
-                           value="{{ old('email', $user->email) }}" 
+                           value="{{ old('email', $user->email) }}"
+                           required
                            class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
                                   @error('email') border-red-500 focus:border-red-500 focus:ring-red-500/30
                                   @else border-gray-300 focus:border-indigo-500 dark:border-gray-600
@@ -211,27 +238,48 @@
                         First Name <span class="text-red-500">*</span>
                     </label>
                     <input id="first_name" type="text" name="first_name"
-                           value="{{ old('first_name', $profile->first_name) }}" 
-                           class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                           value="{{ old('first_name', $firstName) }}"
+                           required
+                           class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
+                                  @error('first_name') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                  @else border-gray-300 focus:border-indigo-500 dark:border-gray-600
+                                  @enderror">
+                    @error('first_name')
+                        <p class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
                 </div>
+
                 {{-- Middle name --}}
                 <div>
-                    <label for="last_name" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Middle Name 
+                    <label for="middle_name" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Middle Name
                     </label>
                     <input id="middle_name" type="text" name="middle_name"
-                           value="{{ old('middle_name', $profile->middle_name) }}" 
-                           class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                           value="{{ old('middle_name', $middleName) }}"
+                           class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
+                                  @error('middle_name') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                  @else border-gray-300 focus:border-indigo-500 dark:border-gray-600
+                                  @enderror">
+                    @error('middle_name')
+                        <p class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- Last name --}}
-                <div>
+                <div class="sm:col-span-2">
                     <label for="last_name" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Last Name 
+                        Last Name <span class="text-red-500">*</span>
                     </label>
                     <input id="last_name" type="text" name="last_name"
-                           value="{{ old('last_name', $profile->last_name) }}" 
-                           class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                           value="{{ old('last_name', $lastName) }}"
+                           required
+                           class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
+                                  @error('last_name') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                  @else border-gray-300 focus:border-indigo-500 dark:border-gray-600
+                                  @enderror">
+                    @error('last_name')
+                        <p class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
         </div>
@@ -251,16 +299,29 @@
                 <div>
                     <label for="phone" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Phone</label>
                     <input id="phone" type="text" name="phone"
-                           value="{{ old('phone', $profile->phone ?? '') }}" placeholder="+1 555 000 0000"
-                           class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                           value="{{ old('phone', optional($profile)->phone ?? '') }}"
+                           placeholder="+1 555 000 0000"
+                           class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
+                                  @error('phone') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                  @else border-gray-300 focus:border-indigo-500 dark:border-gray-600
+                                  @enderror">
+                    @error('phone')
+                        <p class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- Birthdate --}}
                 <div>
                     <label for="birthdate" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Birthdate</label>
                     <input id="birthdate" type="date" name="birthdate"
-                           value="{{ old('birthdate', optional($profile->birthdate ?? null)->format('Y-m-d')) }}"
-                           class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                           value="{{ old('birthdate', optional(optional($profile)->birthdate)->format('Y-m-d')) }}"
+                           class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
+                                  @error('birthdate') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                  @else border-gray-300 focus:border-indigo-500 dark:border-gray-600
+                                  @enderror">
+                    @error('birthdate')
+                        <p class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- Gender --}}
@@ -270,7 +331,7 @@
                         'female' => ['label' => 'Female', 'icon' => 'ri-women-line'],
                         'other'  => ['label' => 'Other',  'icon' => 'ri-user-line'],
                     ];
-                    $current = old('gender', $profile->gender ?? '');
+                    $current = old('gender', optional($profile)->gender ?? '');
                 @endphp
 
                 <div class="sm:col-span-2">
@@ -282,7 +343,6 @@
                                 <input type="radio" name="gender" value="{{ $val }}" class="peer sr-only"
                                     {{ $current === $val ? 'checked' : '' }}>
 
-                                {{-- Card --}}
                                 <div class="flex items-center justify-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-3 py-2.5 transition-all duration-200
                                             hover:border-gray-300 hover:shadow-sm
                                             peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:shadow-sm
@@ -291,7 +351,6 @@
                                             dark:peer-checked:border-indigo-500 dark:peer-checked:bg-indigo-900/30
                                             dark:peer-focus-visible:ring-offset-gray-900">
 
-                                    {{-- Icon + Text side by side in one span --}}
                                     <span class="inline-flex items-center gap-2 text-xs font-medium text-gray-700 transition-colors
                                                 peer-checked:text-indigo-700
                                                 dark:text-gray-200 dark:peer-checked:text-indigo-300">
@@ -302,7 +361,6 @@
                                     </span>
                                 </div>
 
-                                {{-- Check badge --}}
                                 <span class="pointer-events-none absolute right-1.5 top-1.5 hidden h-4 w-4 items-center justify-center rounded-full bg-indigo-500 text-white shadow
                                             peer-checked:flex">
                                     <i class="ri-check-line text-[10px] leading-none"></i>
@@ -327,14 +385,17 @@
                               rows="6"
                               maxlength="1000"
                               placeholder="Tell us a bit about yourself..."
-                              class="js-rich-editor block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white">{{ old('bio', $profile->bio ?? '') }}</textarea>
+                              class="js-rich-editor block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
+                                     @error('bio') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                     @else border-gray-300 focus:border-indigo-500 dark:border-gray-600
+                                     @enderror">{{ $bioValue }}</textarea>
 
                     @error('bio')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        <p class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror
 
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        <span id="bio-counter">0</span> / 1000 characters
+                        <span id="bio-counter">{{ $bioLength }}</span> / 1000 characters
                     </p>
                 </div>
             </div>
@@ -362,7 +423,7 @@
                             data-dependent-target="state_id">
                         <option value="">— Select country —</option>
                         @foreach ($countries as $country)
-                            <option value="{{ $country->id }}">
+                            <option value="{{ $country->id }}" @selected($selectedCountry == $country->id)>
                                 {{ $country->name }}
                             </option>
                         @endforeach
@@ -383,7 +444,7 @@
                             data-selected="{{ $selectedState }}">
                         <option value="">— Select state —</option>
                         @foreach ($states as $state)
-                            <option value="{{ $state->id }}">
+                            <option value="{{ $state->id }}" @selected($selectedState == $state->id)>
                                 {{ $state->name }}
                             </option>
                         @endforeach
@@ -403,7 +464,7 @@
                             data-selected="{{ $selectedCity }}">
                         <option value="">— Select city —</option>
                         @foreach ($cities as $city)
-                            <option value="{{ $city->id }}">
+                            <option value="{{ $city->id }}" @selected($selectedCity == $city->id)>
                                 {{ $city->name }}
                             </option>
                         @endforeach
@@ -417,8 +478,15 @@
                 <div>
                     <label for="zip_code" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Zip Code</label>
                     <input id="zip_code" type="text" name="zip_code"
-                           value="{{ old('zip_code', $profile->zip_code ?? '') }}" placeholder="12345"
-                           class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                           value="{{ old('zip_code', optional($profile)->zip_code ?? '') }}"
+                           placeholder="12345"
+                           class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
+                                  @error('zip_code') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                  @else border-gray-300 focus:border-indigo-500 dark:border-gray-600
+                                  @enderror">
+                    @error('zip_code')
+                        <p class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- Address --}}
@@ -429,11 +497,14 @@
                     <input id="address"
                            type="text"
                            name="address"
-                           value="{{ old('address', $profile->address ?? '') }}"
+                           value="{{ old('address', optional($profile)->address ?? '') }}"
                            placeholder="123 Main St"
-                           class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                           class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
+                                  @error('address') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                  @else border-gray-300 focus:border-indigo-500 dark:border-gray-600
+                                  @enderror">
                     @error('address')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        <p class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror
                 </div>
             </div>
@@ -468,10 +539,16 @@
                                 </svg>
                             </span>
                             <input id="{{ $field }}" type="url" name="{{ $field }}"
-                                   value="{{ old($field, $profile->{$field} ?? '') }}"
+                                   value="{{ old($field, optional($profile)->{$field} ?? '') }}"
                                    placeholder="{{ $meta['placeholder'] }}"
-                                   class="block w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-3.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                                   class="block w-full rounded-xl border bg-white py-2.5 pl-10 pr-3.5 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
+                                          @error($field) border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                          @else border-gray-300 focus:border-indigo-500 dark:border-gray-600
+                                          @enderror">
                         </div>
+                        @error($field)
+                            <p class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
                     </div>
                 @endforeach
             </div>
@@ -495,7 +572,10 @@
                     <div class="relative">
                         <input id="password" type="password" name="password" autocomplete="new-password"
                                placeholder="••••••••"
-                               class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 pr-11 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                               class="block w-full rounded-xl border bg-white px-3.5 py-2.5 pr-11 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
+                                      @error('password') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                      @else border-gray-300 focus:border-indigo-500 dark:border-gray-600
+                                      @enderror">
                         <button type="button" data-toggle-password="password"
                                 class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                             <svg data-eye-open class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
@@ -518,7 +598,10 @@
                     <div class="relative">
                         <input id="password_confirmation" type="password" name="password_confirmation" autocomplete="new-password"
                                placeholder="••••••••"
-                               class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 pr-11 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                               class="block w-full rounded-xl border bg-white px-3.5 py-2.5 pr-11 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
+                                      @error('password_confirmation') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                      @else border-gray-300 focus:border-indigo-500 dark:border-gray-600
+                                      @enderror">
                         <button type="button" data-toggle-password="password_confirmation"
                                 class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                             <svg data-eye-open class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
@@ -530,6 +613,9 @@
                             </svg>
                         </button>
                     </div>
+                    @error('password_confirmation')
+                        <p class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
         </div>
@@ -557,14 +643,61 @@
 @endsection
 
 
-
-
 <script>
 (function () {
     'use strict';
 
+    /* ══════════════════════════════════════════════════════════
+       TOAST HELPER — SweetAlert2 wrapper (falls back to console)
+       ══════════════════════════════════════════════════════════ */
+    const Toast = window.Swal ? Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 4000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+        },
+    }) : null;
+
+    function toastError(message, title = 'Error') {
+        if (Toast) {
+            Toast.fire({ icon: 'error', title, text: message });
+        } else {
+            console.error(`[${title}] ${message}`);
+        }
+    }
+
+    function toastSuccess(message, title = 'Success') {
+        if (Toast) {
+            Toast.fire({ icon: 'success', title, text: message });
+        } else {
+            console.log(`[${title}] ${message}`);
+        }
+    }
+
+    function toastWarning(message, title = 'Warning') {
+        if (Toast) {
+            Toast.fire({ icon: 'warning', title, text: message });
+        } else {
+            console.warn(`[${title}] ${message}`);
+        }
+    }
+
+    function toastInfo(message, title = 'Info') {
+        if (Toast) {
+            Toast.fire({ icon: 'info', title, text: message });
+        } else {
+            console.info(`[${title}] ${message}`);
+        }
+    }
+
     function init() {
-        // ---------- Select2 ----------
+        /* ══════════════════════════════════════════════════════════
+           SELECT2 — enhance the location dropdowns
+           ══════════════════════════════════════════════════════════ */
         if (window.jQuery && jQuery.fn.select2) {
             jQuery('.js-select').select2({
                 placeholder: 'Select an option',
@@ -573,7 +706,9 @@
             });
         }
 
-        // ---------- Country → State → City cascade ----------
+        /* ══════════════════════════════════════════════════════════
+           COUNTRY → STATE → CITY CASCADE
+           ══════════════════════════════════════════════════════════ */
         const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
 
         function rebuild(target, rows, placeholder, selected) {
@@ -584,6 +719,7 @@
                 html += `<option value="${row.id}"${sel}>${row.name}</option>`;
             }
             target.innerHTML = html;
+
             if (window.jQuery && jQuery.fn.select2) {
                 jQuery(target).trigger('change.select2');
             }
@@ -627,6 +763,12 @@
                 if (window.jQuery && jQuery.fn.select2) {
                     jQuery(target).trigger('change.select2');
                 }
+
+                // 🔔 Toast on cascade failure
+                toastError(
+                    `Could not load ${targetId === 'state_id' ? 'states' : 'cities'}. Please try again.`,
+                    'Load Failed'
+                );
             }
         }
 
@@ -638,14 +780,13 @@
                 const placeholder = targetId === 'state_id'
                     ? '— Select state —'
                     : '— Select city —';
+
                 if (target) {
                     rebuild(target, [], placeholder, null);
                     const grandchildId = target.dataset.dependentTarget;
                     if (grandchildId) {
                         const gc = document.getElementById(grandchildId);
-                        if (gc) {
-                            rebuild(gc, [], '— Select city —', null);
-                        }
+                        if (gc) rebuild(gc, [], '— Select city —', null);
                     }
                 }
                 loadOptions(source, targetId, null);
@@ -656,7 +797,9 @@
             }
         });
 
-        // ---------- Rich Text Editor (TinyMCE OR CKEditor) ----------
+        /* ══════════════════════════════════════════════════════════
+           RICH TEXT EDITOR — CKEditor preferred, TinyMCE fallback
+           ══════════════════════════════════════════════════════════ */
         const bioTextarea = document.querySelector('textarea.js-rich-editor');
         const bioCounter  = document.getElementById('bio-counter');
 
@@ -667,9 +810,49 @@
             bioCounter.classList.toggle('font-semibold', text.length > 1000);
         }
 
-        // Prefer CKEditor if available, otherwise fall back to TinyMCE
-        if (bioTextarea && window.ClassicEditor) {
+        function initTinyMCE() {
+            if (!window.tinymce || !bioTextarea) return;
+
             const isDark = document.documentElement.classList.contains('dark');
+
+            tinymce.init({
+                selector: 'textarea.js-rich-editor',
+                height: 260,
+                menubar: false,
+                branding: false,
+                promotion: false,
+                plugins: 'lists link autolink code charcount paste',
+                toolbar: 'undo redo | bold italic underline | bullist numlist | link | removeformat | code',
+                skin: isDark ? 'oxide-dark' : 'oxide',
+                content_css: isDark ? 'dark' : 'default',
+
+                setup(editor) {
+                    editor.on('input change keyup setcontent', () => {
+                        const text = editor.getContent({ format: 'text' });
+                        updateCounter(text);
+                    });
+
+                    // Enforce limit + sync on form submit
+                    const form = editor.getElement().closest('form');
+                    if (form) {
+                        form.addEventListener('submit', (e) => {
+                            const text = editor.getContent({ format: 'text' });
+                            if (text.length > 1000) {
+                                e.preventDefault();
+                                toastError(
+                                    `Your bio is ${text.length} characters. The maximum is 1000.`,
+                                    'Bio Too Long'
+                                );
+                                return false;
+                            }
+                            editor.save(); // sync back into textarea
+                        });
+                    }
+                },
+            });
+        }
+
+        if (bioTextarea && window.ClassicEditor) {
             const initialContent = bioTextarea.value || '';
 
             ClassicEditor
@@ -694,75 +877,99 @@
                     // Initialize counter on load
                     updateCounter(initialContent.replace(/<[^>]*>/g, ''));
 
-                    // Enforce 1000 character limit on submit
+                    // Enforce 1000 char limit + sync back to textarea on submit
                     const form = bioTextarea.closest('form');
                     if (form) {
                         form.addEventListener('submit', (e) => {
                             const text = editor.getData().replace(/<[^>]*>/g, '');
                             if (text.length > 1000) {
                                 e.preventDefault();
-                                alert('Bio cannot exceed 1000 characters.');
+                                toastError(
+                                    `Your bio is ${text.length} characters. The maximum is 1000.`,
+                                    'Bio Too Long'
+                                );
                                 return false;
                             }
-                            // Sync editor content back to the textarea (in case
-                            // any code path submits the raw textarea value)
                             bioTextarea.value = editor.getData();
                         });
                     }
                 })
                 .catch(err => {
                     console.error('[CKEditor] init failed:', err);
-                    // Fallback to TinyMCE if CKEditor fails
                     initTinyMCE();
                 });
         } else if (bioTextarea && window.tinymce) {
             initTinyMCE();
         }
 
-        function initTinyMCE() {
-            if (!window.tinymce) return;
-            const isDark = document.documentElement.classList.contains('dark');
+        /* ══════════════════════════════════════════════════════════
+           AVATAR — size check + live preview (single listener)
+           ══════════════════════════════════════════════════════════ */
+        const avatarInput   = document.getElementById('avatarInput');
+        const avatarPreview = document.getElementById('avatarPreview');
+        const avatarError   = document.getElementById('avatarError');
 
-            tinymce.init({
-                selector: 'textarea.js-rich-editor',
-                height: 260,
-                menubar: false,
-                branding: false,
-                promotion: false,
-                plugins: 'lists link autolink code charcount paste',
-                toolbar: 'undo redo | bold italic underline | bullist numlist | link | removeformat | code',
-                skin: isDark ? 'oxide-dark' : 'oxide',
-                content_css: isDark ? 'dark' : 'default',
+        avatarInput?.addEventListener('change', function () {
+            const file = this.files?.[0];
 
-                setup(editor) {
-                    editor.on('input change keyup setcontent', () => {
-                        const text = editor.getContent({ format: 'text' });
-                        updateCounter(text);
-                    });
+            // Reset inline error
+            if (avatarError) {
+                avatarError.textContent = '';
+                avatarError.classList.add('hidden');
+            }
 
-                    editor.on('submit', () => {
-                        const text = editor.getContent({ format: 'text' });
-                        if (text.length > 1000) {
-                            editor.setContent(text.slice(0, 1000));
-                        }
-                    });
-                },
-            });
-        }
-
-        // ---------- Avatar live preview ----------
-        document.getElementById('avatarInput')?.addEventListener('change', function (e) {
-            const file = e.target.files?.[0];
             if (!file) return;
+
+            const maxBytes = Number(this.dataset.maxBytes) || 10 * 1024 * 1024;
+
+            // 1) Size check FIRST
+            if (file.size > maxBytes) {
+                const msg = 'The avatar may not be larger than 10 MB. Please upload a smaller image.';
+
+                // Inline error (kept for accessibility / no-JS-library fallback)
+                if (avatarError) {
+                    avatarError.textContent = msg;
+                    avatarError.classList.remove('hidden');
+                }
+
+                // 🔔 Toast
+                toastError(msg, 'File Too Large');
+
+                this.value = ''; // reset input
+                return;
+            }
+
+            // 2) Type check (mirrors server-side mimes rule)
+            const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+            if (!allowed.includes(file.type)) {
+                const msg = 'The avatar must be a JPG, PNG, or WebP image.';
+
+                if (avatarError) {
+                    avatarError.textContent = msg;
+                    avatarError.classList.remove('hidden');
+                }
+
+                // 🔔 Toast
+                toastError(msg, 'Invalid File Type');
+
+                this.value = '';
+                return;
+            }
+
+            // 3) Preview
             const reader = new FileReader();
             reader.onload = ev => {
-                const img = document.getElementById('avatarPreview');
-                if (img) img.src = ev.target.result;
+                if (avatarPreview) avatarPreview.src = ev.target.result;
             };
             reader.readAsDataURL(file);
+
+            // 🔔 Optional success toast
+            toastSuccess(`"${file.name}" selected.`, 'Avatar Ready');
         });
 
-        // ---------- Password visibility toggles ----------
+        /* ══════════════════════════════════════════════════════════
+           PASSWORD VISIBILITY TOGGLES
+           ══════════════════════════════════════════════════════════ */
         document.querySelectorAll('[data-toggle-password]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const input = document.getElementById(btn.dataset.togglePassword);
@@ -776,6 +983,10 @@
             });
         });
 
+        /* ══════════════════════════════════════════════════════════
+           GENDER RADIO — force peer re-render for browsers
+           that don't update :has() reliably
+           ══════════════════════════════════════════════════════════ */
         document.querySelectorAll('input[name="gender"]').forEach((radio) => {
             radio.addEventListener('change', () => {
                 document.querySelectorAll('input[name="gender"]').forEach((r) => {
@@ -792,5 +1003,3 @@
     }
 })();
 </script>
-
-    

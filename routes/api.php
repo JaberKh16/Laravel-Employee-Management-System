@@ -1,10 +1,11 @@
 <?php
 
 use App\Http\Controllers\API\EmployeeController;
+use App\Http\Controllers\DailyLogController;
+use App\Models\City;
+use App\Models\State;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Models\State;
-use App\Models\City;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,6 +20,8 @@ use App\Models\City;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
+    Route::post('/logs', [DailyLogController::class, 'store']);
+    Route::get('/logs/daily', [DailyLogController::class, 'daily']);
 });
 
 // Route::middleware(['auth'])->group(function () {

@@ -16,7 +16,6 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\State;
 use Illuminate\Http\Request;
-use App\Models\Employee;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
