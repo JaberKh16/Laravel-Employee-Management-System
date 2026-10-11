@@ -1,7 +1,9 @@
 <template>
     <div class="mx-auto max-w-6xl">
 
-        
+        <!-- ══════════════════════════════════════════════════════════
+             HEADER
+             ══════════════════════════════════════════════════════════ -->
         <header class="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-gray-200 pb-5 dark:border-gray-700">
             <div>
                 <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
@@ -22,9 +24,9 @@
             </router-link>
         </header>
 
-        <!-- {{-- ============================================================
+        <!-- ══════════════════════════════════════════════════════════
              SEARCH BAR
-             ============================================================ --}} -->
+             ══════════════════════════════════════════════════════════ -->
         <div class="mb-6 flex flex-wrap items-center gap-3">
             <div class="flex flex-1 min-w-[260px] items-center gap-2">
                 <div class="relative flex-1">
@@ -36,7 +38,7 @@
                     <input
                         type="search"
                         v-model="searchWord"
-                        placeholder="Search employees by name or department…"
+                        placeholder="Search employees by name, email, department…"
                         class="block w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-3 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 dark:focus:border-indigo-400">
                 </div>
 
@@ -53,9 +55,12 @@
             </div>
         </div>
 
-     
+        <!-- ══════════════════════════════════════════════════════════
+             TABLE CARD
+             ══════════════════════════════════════════════════════════ -->
         <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
 
+            <!-- Loading (first load only) -->
             <div v-if="loading" class="flex items-center justify-center p-16">
                 <div class="flex flex-col items-center gap-3">
                     <svg class="h-8 w-8 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24">
@@ -66,7 +71,25 @@
                 </div>
             </div>
 
-       
+            <!-- Error -->
+            <div v-else-if="error" class="p-8 text-center">
+                <div class="mx-auto flex max-w-md flex-col items-center gap-3">
+                    <span class="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-500 dark:bg-red-950/40 dark:text-red-400">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+                        </svg>
+                    </span>
+                    <p class="text-sm text-gray-700 dark:text-gray-200">{{ error }}</p>
+                    <button
+                        type="button"
+                        @click="list(1)"
+                        class="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500">
+                        Try again
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table -->
             <div v-else class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead class="bg-gray-50 dark:bg-gray-900/40">
@@ -85,35 +108,35 @@
                             :key="employee.id"
                             class="group transition-colors hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20">
 
-                        
+                            <!-- ID -->
                             <td class="whitespace-nowrap px-4 py-3.5 text-sm font-medium text-gray-500 dark:text-gray-400">
                                 {{ employee.id }}
                             </td>
 
-                 
+                            <!-- Employee (name + initials avatar) -->
                             <td class="whitespace-nowrap px-4 py-3.5">
                                 <div class="flex items-center gap-3">
                                     <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-xs font-bold uppercase text-white">
-                                        {{ initials(employee) }}
+                                        {{ employee.initials || initials(employee) }}
                                     </span>
-                                    <div>
+                                    <div class="min-w-0">
                                         <div class="text-sm font-semibold text-gray-900 dark:text-white">
-                                            {{ employee.first_name }} {{ employee.last_name }}
+                                            {{ employee.full_name || displayName(employee) }}
                                         </div>
-                                        <div v-if="employee.middle_name" class="text-xs text-gray-500 dark:text-gray-400">
-                                            {{ employee.middle_name }}
+                                        <div v-if="employee.email" class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]">
+                                            {{ employee.email }}
                                         </div>
                                     </div>
                                 </div>
                             </td>
 
-                    
+                            <!-- Address -->
                             <td class="px-4 py-3.5 text-sm text-gray-600 dark:text-gray-400">
                                 <span v-if="employee.address">{{ employee.address }}</span>
                                 <span v-else class="text-xs italic text-gray-400 dark:text-gray-500">—</span>
                             </td>
 
-                      
+                            <!-- Department -->
                             <td class="whitespace-nowrap px-4 py-3.5">
                                 <span
                                     v-if="employee.department"
@@ -126,13 +149,13 @@
                                 <span v-else class="text-xs italic text-gray-400 dark:text-gray-500">—</span>
                             </td>
 
-          
+                            <!-- Actions -->
                             <td class="whitespace-nowrap px-4 py-3.5 text-right">
                                 <div class="inline-flex items-center gap-1.5">
                                     <router-link
                                         :to="{ name: 'employee.edit', params: { id: employee.id } }"
                                         title="Edit employee"
-                                        :aria-label="`Edit ${employee.first_name} ${employee.last_name}`"
+                                        :aria-label="`Edit ${employee.full_name || displayName(employee)}`"
                                         class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-indigo-600 transition-colors hover:bg-indigo-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:text-indigo-400 dark:hover:bg-indigo-950/40">
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zM19.5 7.125L16.862 4.487M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/>
@@ -142,18 +165,23 @@
                                     <button
                                         type="button"
                                         title="Delete employee"
-                                        :aria-label="`Delete ${employee.first_name} ${employee.last_name}`"
+                                        :aria-label="`Delete ${employee.full_name || displayName(employee)}`"
+                                        :disabled="deletingId === employee.id"
                                         @click="deleteEmployee(employee.id)"
-                                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 dark:text-red-400 dark:hover:bg-red-950/40">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:opacity-40 dark:text-red-400 dark:hover:bg-red-950/40">
+                                        <svg v-if="deletingId !== employee.id" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
+                                        </svg>
+                                        <svg v-else class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                                         </svg>
                                     </button>
                                 </div>
                             </td>
                         </tr>
 
-                   
+                        <!-- Empty state -->
                         <tr v-if="searchFilter.length === 0">
                             <td colspan="5" class="px-4 py-16 text-center">
                                 <div class="mx-auto flex max-w-sm flex-col items-center gap-3">
@@ -196,9 +224,9 @@
                 </table>
             </div>
 
-
+            <!-- Pagination -->
             <div
-                v-if="!loading && rawdata.last_page > 1"
+                v-if="!loading && !error && rawdata.last_page > 1"
                 class="border-t border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900/40">
                 <pagination
                     :data="rawdata"
@@ -221,8 +249,8 @@
             </div>
         </div>
 
-
-        <p v-if="!loading && rawdata.total" class="mt-4 text-xs text-gray-500 dark:text-gray-400">
+        <!-- Result count -->
+        <p v-if="!loading && !error && rawdata.total" class="mt-4 text-xs text-gray-500 dark:text-gray-400">
             Showing
             <span class="font-semibold text-gray-700 dark:text-gray-300">{{ rawdata.from ?? 0 }}</span>
             to
@@ -239,6 +267,8 @@
 import pagination from 'laravel-vue-pagination'
 import axios from 'axios'
 
+const API = '/api/v1'
+
 export default {
     name: 'EmployeeIndex',
 
@@ -246,25 +276,48 @@ export default {
 
     data() {
         return {
-            loading:    false,
-            rawdata:    {},
+            loading:   false,
+            firstLoad: true,
+            error:     null,
+            rawdata: {
+                data:         [],
+                current_page: 1,
+                last_page:    1,
+                per_page:     0,
+                total:        0,
+                from:         0,
+                to:           0,
+                links:        [],
+            },
             employees:  [],
             searchWord: '',
+            deletingId: null,
         }
     },
 
     computed: {
         searchFilter() {
             const q = (this.searchWord || '').toLowerCase().trim()
-            if (! q) return this.employees
+            if (!q) return this.employees
 
             return this.employees.filter(employee => {
                 const first = (employee.first_name ?? '').toLowerCase()
                 const last  = (employee.last_name  ?? '').toLowerCase()
+                const mid   = (employee.middle_name ?? '').toLowerCase()
+                const full  = (employee.full_name ?? '').toLowerCase()
                 const dept  = (employee.department?.name ?? '').toLowerCase()
                 const addr  = (employee.address ?? '').toLowerCase()
+                const email = (employee.email ?? '').toLowerCase()
+                const desig = (employee.designation ?? '').toLowerCase()
 
-                return first.includes(q) || last.includes(q) || dept.includes(q) || addr.includes(q)
+                return first.includes(q)
+                    || last.includes(q)
+                    || mid.includes(q)
+                    || full.includes(q)
+                    || dept.includes(q)
+                    || addr.includes(q)
+                    || email.includes(q)
+                    || desig.includes(q)
             })
         },
     },
@@ -274,55 +327,136 @@ export default {
     },
 
     methods: {
-        // ---------- Fetch paginated list ----------
+        // ─────────────────────────────────────────────
+        // Normalise every Laravel paginator shape
+        // ─────────────────────────────────────────────
+        normalizePaginator(payload) {
+            // Laravel API Resource paginator:
+            // { data: [...], links: {...}, meta: { current_page, last_page, ... } }
+            if (payload && payload.meta && Array.isArray(payload.data)) {
+                return {
+                    data:         payload.data,
+                    current_page: payload.meta.current_page,
+                    last_page:    payload.meta.last_page,
+                    per_page:     payload.meta.per_page,
+                    total:        payload.meta.total,
+                    from:         payload.meta.from,
+                    to:           payload.meta.to,
+                    links:        payload.meta.links ?? [],
+                }
+            }
+
+            // Standard Laravel paginator
+            if (payload && Array.isArray(payload.data) && payload.current_page != null) {
+                return {
+                    data:         payload.data,
+                    current_page: payload.current_page,
+                    last_page:    payload.last_page,
+                    per_page:     payload.per_page,
+                    total:        payload.total,
+                    from:         payload.from,
+                    to:           payload.to,
+                    links:        payload.links ?? [],
+                }
+            }
+
+            // Plain array
+            if (Array.isArray(payload)) {
+                return {
+                    data:         payload,
+                    current_page: 1,
+                    last_page:    1,
+                    per_page:     payload.length,
+                    total:        payload.length,
+                    from:         payload.length ? 1 : 0,
+                    to:           payload.length,
+                    links:        [],
+                }
+            }
+
+            // Unknown → safe empty
+            return {
+                data:         [],
+                current_page: 1,
+                last_page:    1,
+                per_page:     0,
+                total:        0,
+                from:         0,
+                to:           0,
+                links:        [],
+            }
+        },
+
+        // ─────────────────────────────────────────────
+        // Fetch paginated list
+        // ─────────────────────────────────────────────
         async list(page = 1) {
-            this.loading = true
+            if (this.firstLoad) this.loading = true
+            this.error = null
+
             try {
-                const { data } = await axios.get(`/api/employees?page=${page}`)
-                this.rawdata   = data
-                this.employees = data.data
+                const { data } = await axios.get(`${API}/employees`, {
+                    params: { page },
+                    headers: { Accept: 'application/json' },
+                })
+
+                const normalized = this.normalizePaginator(data)
+                this.rawdata   = normalized
+                this.employees = normalized.data
             } catch (e) {
-                console.error('Failed to load employees', e)
-                this.rawdata   = {}
+                const status = e?.response?.status
+                this.error = status === 404
+                    ? 'Endpoint not found. Check your API route prefix (expected /api/v1/employees).'
+                    : status === 401 || status === 403
+                        ? 'You are not authorised to view employees.'
+                        : 'Failed to load employees. Please try again.'
+
+                console.error('Failed to load employees', e?.response ?? e)
+                this.rawdata   = this.normalizePaginator(null)
                 this.employees = []
-                this.$toast?.error('Failed to load employees.')
             } finally {
-                this.loading = false
+                this.loading   = false
+                this.firstLoad = false
             }
         },
 
-        // ---------- Fetch all (used after delete) ----------
-        async getEmployees() {
-            this.loading = true
-            try {
-                const { data } = await axios.get('/api/employees')
-                this.employees = data.data ?? data
-            } catch (e) {
-                console.error('Failed to load employees', e)
-            } finally {
-                this.loading = false
-            }
-        },
-
-        // ---------- Delete with confirm ----------
+        // ─────────────────────────────────────────────
+        // Delete with confirm
+        // ─────────────────────────────────────────────
         async deleteEmployee(id) {
-            if (! confirm('Delete this employee? This action cannot be undone.')) return
+            if (!confirm('Delete this employee? This action cannot be undone.')) return
 
+            this.deletingId = id
             try {
-                await axios.delete(`/api/employees/${id}`)
-                this.$toast?.success('Employee deleted successfully.')
-                await this.list()
+                await axios.delete(`${API}/employees/${id}`, {
+                    headers: { Accept: 'application/json' },
+                })
+
+                const page = this.rawdata.current_page ?? 1
+                const lastOnPage = this.employees.length
+                await this.list(lastOnPage === 1 && page > 1 ? page - 1 : page)
             } catch (e) {
-                console.error('Failed to delete employee', e)
-                this.$toast?.error('Failed to delete employee.')
+                console.error('Failed to delete employee', e?.response ?? e)
+                this.error = 'Failed to delete employee.'
+            } finally {
+                this.deletingId = null
             }
         },
 
-        // ---------- Avatar initials helper ----------
+        // ─────────────────────────────────────────────
+        // Helpers
+        // ─────────────────────────────────────────────
         initials(employee) {
             const f = employee.first_name?.[0] ?? ''
             const l = employee.last_name?.[0]  ?? ''
             return (f + l).toUpperCase() || 'E'
+        },
+
+        displayName(employee) {
+            return [employee.first_name, employee.middle_name, employee.last_name]
+                .filter(Boolean)
+                .join(' ')
+                .trim() || '—'
         },
     },
 }

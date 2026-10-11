@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Exports\EmployeesExport;
 use App\Http\Controllers\Controller;
+use App\Http\Enums\EmployeeStatus;
 use App\Http\Requests\EmployeeStoreRequest;
 use App\Http\Requests\EmployeeUpdateRequest;
 use App\Http\Resources\CityResource;
@@ -14,9 +16,10 @@ use App\Models\City;
 use App\Models\Country;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\JobProfile;
 use App\Models\State;
-use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
@@ -25,41 +28,6 @@ use Throwable;
 
 class EmployeeController extends Controller
 {
-    
-    // public function index()
-    // {
-    //     return EmployeeResource::collection(Employee::latest('id')->with(['department', 'country', 'city', 'state'])->paginate(50));
-    // }
-
-    
-    // public function store(EmployeeStoreRequest $request)
-    // {
-    //     //dd($request->all());
-    //     $employee = Employee::create($request->validated());
-    //     return new EmployeeResource($employee);
-    // }
-
-    
-    // public function show(Employee $employee)
-    // {
-    //     return new EmployeeResource($employee);
-    // }
-
-   
-    // public function update(EmployeeUpdateRequest $request, Employee $employee)
-    // {
-    //     $employee->update($request->validated());
-    //     return new EmployeeResource($employee);
-    // }
-
-   
-
-    // public function destroy(Employee $employee)
-    // {
-    //     $employee->delete();
-    //     return response()->noContent();
-    // }
-
 
     public function index(Request $request)
     {
@@ -67,12 +35,14 @@ class EmployeeController extends Controller
             $employees = $this->buildFilteredQuery($request)
                 ->with([
                     'user.profile',
+                    'department',
                     'jobProfile.department',
                     'jobProfile.branch',
                     'country', 'state', 'city',
                 ])
                 ->paginate((int) $request->get('per_page', 15))
                 ->withQueryString();
+            // return response()->json($employees);
 
             return EmployeeResource::collection($employees);
 
@@ -146,7 +116,7 @@ class EmployeeController extends Controller
 
         try {
             // 1. Create the job profile first
-            $jobProfile = \App\Models\JobProfile::create([
+            $jobProfile = JobProfile::create([
                 'department_id'           => $validated['department_id']           ?? null,
                 'designation'             => $validated['designation']             ?? null,
                 'employment_type'         => $validated['employment_type']         ?? null,

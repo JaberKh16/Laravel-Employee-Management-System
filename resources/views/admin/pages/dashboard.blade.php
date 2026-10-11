@@ -19,11 +19,7 @@
                 margin-bottom: 1.5rem;
                 border-bottom: 1px solid rgba(15, 23, 42, 0.06);
             }
-
-            /* Left side — title + subtitle */
-            .page-header-modern__left {
-                min-width: 0;
-            }
+            .page-header-modern__left { min-width: 0; }
             .page-header-modern__title {
                 font-size: 1.6rem;
                 font-weight: 800;
@@ -38,8 +34,6 @@
                 margin: 0;
                 line-height: 1.4;
             }
-
-            /* Right side — actions */
             .page-header-modern__actions {
                 display: flex;
                 align-items: center;
@@ -63,10 +57,8 @@
                 box-shadow:
                     0 8px 20px -8px rgba(99, 102, 241, 0.55),
                     0 2px 6px -2px rgba(15, 23, 42, 0.10);
-                transition:
-                    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-                    box-shadow 0.2s ease,
-                    filter 0.2s ease;
+                transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                            box-shadow 0.2s ease, filter 0.2s ease;
                 position: relative;
                 overflow: hidden;
             }
@@ -78,22 +70,16 @@
                     0 12px 26px -8px rgba(99, 102, 241, 0.65),
                     0 4px 10px -2px rgba(15, 23, 42, 0.15);
             }
-            .btn-report:active {
-                transform: translateY(0);
-                filter: brightness(0.98);
-            }
+            .btn-report:active { transform: translateY(0); filter: brightness(0.98); }
             .btn-report:focus-visible {
                 outline: 3px solid rgba(99, 102, 241, 0.35);
                 outline-offset: 2px;
             }
-
-            /* Icon chip inside button */
             .btn-report__icon {
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                width: 26px;
-                height: 26px;
+                width: 26px; height: 26px;
                 background: rgba(255, 255, 255, 0.20);
                 border-radius: 0.5rem;
                 font-size: 0.72rem;
@@ -103,8 +89,21 @@
                 background: rgba(255, 255, 255, 0.30);
                 transform: translateY(-1px);
             }
-            .btn-report__label {
-                white-space: nowrap;
+            .btn-report__label { white-space: nowrap; }
+
+            /* ============================================================
+               DASHBOARD GRID
+               ============================================================ */
+            .dashboard-grid {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+                margin-top: 1.5rem;
+            }
+            @media (min-width: 1200px) {
+                .dashboard-grid {
+                    grid-template-columns: 1.4fr 1fr;
+                }
             }
 
             /* ============================================================
@@ -117,8 +116,6 @@
                 }
                 .page-header-modern__title    { font-size: 1.35rem; }
                 .page-header-modern__subtitle { font-size: 0.78rem; }
-
-                /* Button becomes full-width on mobile */
                 .page-header-modern__actions { width: 100%; }
                 .btn-report {
                     width: 100%;
@@ -126,15 +123,6 @@
                     padding: 0.6rem 1rem;
                 }
             }
-
-            /* ============================================================
-               DARK MODE (optional)
-               ============================================================ */
-            .dark-mode .page-header-modern {
-                border-bottom-color: rgba(255, 255, 255, 0.08);
-            }
-            .dark-mode .page-header-modern__title    { color: #f1f5f9; }
-            .dark-mode .page-header-modern__subtitle { color: #94a3b8; }
         </style>
     @endonce
 @endpush
@@ -142,11 +130,11 @@
 
 {{-- ============================================================
      CONTENT
-     ============================================================ --}}
+============================================================ --}}
 @section('dashboard_content')
 
     {{-- Page Header --}}
-    <section class="page-header-modern">
+    <section class="page-header-modern" id="app">
         <div class="page-header-modern__left">
             <h1 class="page-header-modern__title">Dashboard</h1>
             <p class="page-header-modern__subtitle">
@@ -166,12 +154,14 @@
         </div>
     </section>
 
-    {{-- Sweet Alert --}}
-    {{-- @include('components.sweet-alert') --}}
-
     {{-- Stat Cards --}}
     @include('admin.partials._stats-cards')
 
+    {{-- Chart Section --}}
+    @include('admin.partials._chart')
+
+    {{-- DataTable Section --}}
+    @include('admin.partials._datatable')
 
 @endsection
 
@@ -182,7 +172,6 @@
 @push('dashboard_script')
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Animate stat numbers counting up
             document.querySelectorAll('.stat-tile__value, .stat-value').forEach(el => {
                 const raw = el.textContent.trim().replace(/,/g, '');
                 const target = parseInt(raw, 10);

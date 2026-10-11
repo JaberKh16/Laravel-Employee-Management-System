@@ -1,4 +1,3 @@
-
 <script>
 (function () {
     'use strict';
@@ -9,6 +8,23 @@
     if (typeof window.showLoader !== 'function') {
         console.warn('[Loader] window.showLoader not defined. Check that components.loading.overlay is included before this script.');
         return;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Helper: is this element inside a Vue-managed subtree?
+    // Vue 3 adds data-v-app to the mounted root automatically.
+    // We also honour an explicit [data-vue-skip-loader] opt-out.
+    // ─────────────────────────────────────────────────────────────
+    function isVueManaged(el) {
+        if (!el) return false;
+        if (el.closest('[data-vue-skip-loader]')) return true;
+        if (el.closest('[data-v-app]')) return true;
+
+        const appEl = document.getElementById('app');
+        if (appEl && (appEl.hasAttribute('data-v-app') || appEl.__vue_app__ || appEl.__vue__)) {
+            if (appEl.contains(el)) return true;
+        }
+        return false;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -27,6 +43,7 @@
     // ─────────────────────────────────────────────────────────────
     function shouldSkipLink(el) {
         if (!el || !el.href) return true;
+        if (isVueManaged(el))                           return true;
         if (el.classList.contains('no-loader'))         return true;
         if (el.classList.contains('download-item'))     return true;
         if (el.hasAttribute('download'))                return true;
@@ -78,8 +95,10 @@
             .querySelectorAll('form')
             .forEach(form => {
                 if (markAndCheck(form, 'loaderWired')) return;
-                form.addEventListener('submit', function () {
+                form.addEventListener('submit', function (e) {
                     if (this.classList.contains('no-loader')) return;
+                    if (isVueManaged(this)) return;
+                    if (e.defaultPrevented) return;
 
                     const msg = this.dataset.loading || this.dataset.loadingText || 'Processing…';
                     window.showLoader(msg);
@@ -110,6 +129,7 @@
                 if (markAndCheck(btn, 'loaderWired')) return;
                 // Submit buttons are handled by wireForms()
                 if (btn.type === 'submit') return;
+                if (isVueManaged(btn)) return;
 
                 btn.addEventListener('click', function () {
                     window.showLoader(this.dataset.loading || 'Loading…');

@@ -9,7 +9,9 @@ require('./bootstrap');
 
 import './flowbite-init';
 import './theme-toggle';
-import './sidebar'
+// sidebar script (plain JS, framework-agnostic)
+import { initSidebar } from './sidebar';
+initSidebar();
 
 
 
@@ -24,8 +26,6 @@ import './sidebar'
 //     router
 // });
 
-
-
 // // sidebar script
 // import { initSidebar } from './sidebar';
 // initSidebar();
@@ -33,12 +33,9 @@ import './sidebar'
 
 // vue-3 version setup
 import { createApp } from 'vue';
-import router from './router';
+import router from './router/index.js';
 import EmployeeIndex from './pages/Employee/Index.vue';
 
-// sidebar script (plain JS, framework-agnostic)
-import { initSidebar } from './sidebar';
-initSidebar();
 
 const app = createApp({});
 

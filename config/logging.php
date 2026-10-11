@@ -133,6 +133,14 @@ return [
             'days' => 90,
         ],
 
+        'employee' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/employee.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 30,
+            'replace_placeholders' => true,
+        ],
+
 
         // usage
         // Log::channel('timestamp_log')->info('User logged in', ['user_id' => 1]);

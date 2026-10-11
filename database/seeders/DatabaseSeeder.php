@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
 
                 // 3. Users — need to exist before assigning managers
             EmployeeSeeder::class,
-
+                // JobProfileSeeder::class,   // only if you made one
                 // UserSeeder::class,          // if you have one
                 // ProfileSeeder::class,       // ← add this
 

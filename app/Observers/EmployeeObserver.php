@@ -8,57 +8,92 @@ use Illuminate\Support\Facades\Log;
 class EmployeeObserver
 {
     /**
-     * Handle the Employee "created" event.
-     *
-     * @param  \App\Models\Employee  $employee
-     * @return void
+     * Resolve the acting user once, null-safe.
+     * Works in HTTP requests, console commands, queues, and seeders.
      */
-    public function created(Employee $employee)
+    protected function actor(): array
     {
-        Log::info("New employee".$employee."Data Inserted by ".auth()->user()->username);
+        $user = auth()->user();
+
+        return [
+            'by_id' => $user?->id,
+            'by_username' => $user?->username ?? 'system',
+        ];
     }
 
     /**
-     * Handle the Employee "updated" event.
-     *
-     * @param  \App\Models\Employee  $employee
-     * @return void
+     * Common context shared by all events.
      */
-    public function updated(Employee $employee)
+    protected function context(Employee $employee, array $extra = []): array
     {
-        Log::info("Employee".$employee."Data Updated by ".auth()->user()->username);
+        return array_merge([
+            'employee_id' => $employee->id,
+            'user_id' => $employee->user_id,
+            'department_id' => $employee->department_id,
+            'status' => $employee->status?->value ?? $employee->status,
+        ], $this->actor(), $extra);
     }
 
-    /**
-     * Handle the Employee "deleted" event.
-     *
-     * @param  \App\Models\Employee  $employee
-     * @return void
-     */
-    public function deleted(Employee $employee)
+    /* ═══════════════════════════════════════════════════════════
+       CREATED
+       ═══════════════════════════════════════════════════════════ */
+    // public function created(Employee $employee): void
+    // {
+    //     Log::channel('employee')->info('Employee created', $this->context($employee, [
+    //         'attributes' => $employee->getAttributes(),
+    //     ]));
+    // }
+
+    public function created(Employee $employee): void
     {
-        Log::info("Employee".$employee."Data Deleted by ".auth()->user()->username);
+        $employee->logActivity('created');
     }
 
-    /**
-     * Handle the Employee "restored" event.
-     *
-     * @param  \App\Models\Employee  $employee
-     * @return void
-     */
-    public function restored(Employee $employee)
+
+
+    /* ═══════════════════════════════════════════════════════════
+       UPDATED
+       ═══════════════════════════════════════════════════════════ */
+    // public function updated(Employee $employee): void
+    // {
+    //     Log::channel('employee')->info('Employee updated', $this->context($employee, [
+    //         'changes' => $employee->getChanges(),   // only dirty fields
+    //         'original' => collect($employee->getOriginal())
+    //             ->only(array_keys($employee->getChanges()))
+    //             ->all(),
+    //     ]));
+    // }
+    public function updated(Employee $employee): void
     {
-        //
+        $employee->logActivity('updated', 'info', [
+            'changes' => $employee->getChanges(),
+            'original' => collect($employee->getOriginal())
+                ->only(array_keys($employee->getChanges()))
+                ->all(),
+        ]);
     }
 
-    /**
-     * Handle the Employee "force deleted" event.
-     *
-     * @param  \App\Models\Employee  $employee
-     * @return void
-     */
-    public function forceDeleted(Employee $employee)
+    /* ═══════════════════════════════════════════════════════════
+       DELETED (soft delete)
+       ═══════════════════════════════════════════════════════════ */
+    public function deleted(Employee $employee): void
     {
-        //
+        Log::channel('employee')->warning('Employee deleted', $this->context($employee));
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       RESTORED
+       ═══════════════════════════════════════════════════════════ */
+    public function restored(Employee $employee): void
+    {
+        Log::channel('employee')->notice('Employee restored', $this->context($employee));
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       FORCE DELETED (hard delete from DB)
+       ═══════════════════════════════════════════════════════════ */
+    public function forceDeleted(Employee $employee): void
+    {
+        Log::channel('employee')->critical('Employee force-deleted', $this->context($employee));
     }
 }
