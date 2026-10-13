@@ -41,6 +41,7 @@
 
     {{-- Sidebar --}}
     @include('admin.partials._sidebar')
+    @include('admin.partials._sidebar_mobile')
 
     {{-- Content wrapper --}}
     <div id="main-content"

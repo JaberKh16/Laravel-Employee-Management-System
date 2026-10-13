@@ -35,7 +35,7 @@
                     </svg>
                 </span>
                 <span class="text-base font-semibold text-gray-900 dark:text-white">
-                    {{ config('app.name', 'Employee Management System') }}
+                    {{ config('app.name', 'Office Management System') }}
                 </span>
             </a>
 

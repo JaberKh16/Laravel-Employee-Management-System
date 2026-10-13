@@ -35,12 +35,13 @@ initSidebar();
 import { createApp } from 'vue';
 import router from './router/index.js';
 import EmployeeIndex from './pages/Employee/Index.vue';
+// import ExampleComponent from './components/ExampleComponent.vue';
 
 
 const app = createApp({});
 
 // Register global components if you still need them
 app.component('employee-index', EmployeeIndex);
-
+// app.component('example-component', ExampleComponent);
 app.use(router);
 app.mount('#app');

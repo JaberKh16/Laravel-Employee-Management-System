@@ -6,7 +6,6 @@ use App\Exports\EmployeesExport;
 use App\Http\Controllers\Controller;
 use App\Http\Enums\EmployeeStatus;
 use App\Http\Requests\EmployeeStoreRequest;
-use App\Http\Requests\EmployeeUpdateRequest;
 use App\Http\Resources\CityResource;
 use App\Http\Resources\CountryResource;
 use App\Http\Resources\DepartmentResource;
@@ -87,7 +86,7 @@ class EmployeeController extends Controller
             'address'       => ['nullable', 'string', 'max:500'],
             'zip_code'      => ['nullable', 'string', 'max:20'],
             'birthdate'     => ['nullable', 'date', 'before:today'],
-            'date_hired'    => ['nullable', 'date'],
+            'hired_date' => ['nullable', 'date'],
             'status'        => ['nullable', Rule::in(EmployeeStatus::values())],
 
             // Job profile
@@ -150,7 +149,7 @@ class EmployeeController extends Controller
                 'address'        => $validated['address']       ?? null,
                 'zip_code'       => $validated['zip_code']      ?? null,
                 'birthdate'      => $validated['birthdate']     ?? null,
-                'date_hired'     => $validated['date_hired']    ?? null,
+                'hired_date' => $validated['hired_date'] ?? null,
                 'status'         => $validated['status']        ?? EmployeeStatus::Active->value,
             ]);
 
@@ -189,7 +188,7 @@ class EmployeeController extends Controller
             'address'       => ['nullable', 'string', 'max:500'],
             'zip_code'      => ['nullable', 'string', 'max:20'],
             'birthdate'     => ['nullable', 'date', 'before:today'],
-            'date_hired'    => ['nullable', 'date'],
+            'hired_date' => ['nullable', 'date'],
             'status'        => ['nullable', Rule::in(EmployeeStatus::values())],
 
             'designation'             => ['nullable', 'string', 'max:150'],

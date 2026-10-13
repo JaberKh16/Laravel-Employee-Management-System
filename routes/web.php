@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\SocialServiceController;
 use App\Http\Controllers\Backend\BranchController;
 use App\Http\Controllers\Backend\CityController;
 use App\Http\Controllers\Backend\CountryController;
@@ -8,102 +9,85 @@ use App\Http\Controllers\Backend\PermissionController;
 use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Backend\StateController;
 use App\Http\Controllers\Backend\UserController;
-use App\Http\Controllers\HomeController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
-|
-*/
-
-Route::get('/', function () {
-    return redirect()->route('login');
-});
-
+/* Public / auth */
+Route::get('/', fn() => redirect()->route('login'));
 Auth::routes();
 
-Route::get('/home', [HomeController::class, 'index'])->name('home');
-Route::get('/generate-report', [HomeController::class, 'generateReport'])->name('generate.report');
-Route::middleware(['auth'])->group(function () {
-    Route::prefix('admin')->group(function () {
-        // ── Users ─────────────────────────────────────────────
+Route::get('/home', [DashboardController::class, 'index'])->name('home');
+Route::get('/generate-report', [DashboardController::class, 'generateReport'])->name('generate.report');
+
+/*
+|--------------------------------------------------------------------------
+| Authenticated area — /admin/*
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])->prefix('admin')->group(function () {
+
+    /* ---------- Employee (all authenticated users) ---------- */
+    Route::view('employees', 'admin.pages.employees.index')->name('employees.index');
+
+    /* ---------- SYSTEM section — available to every authenticated user ---------- */
+    // Geo
+    Route::get('countries/export', [CountryController::class, 'export'])->name('countries.export');
+    Route::resource('countries', CountryController::class);
+    Route::get('cities/export', [CityController::class, 'export'])->name('cities.export');
+    Route::resource('cities', CityController::class);
+    Route::get('states/export', [StateController::class, 'export'])->name('states.export');
+    Route::resource('states', StateController::class);
+
+    // Branch
+    Route::patch('branches/{branch}/status', [BranchController::class, 'updateStatus'])->name('branches.update-status');
+    Route::resource('branches', BranchController::class);
+
+    // Department
+    Route::patch('departments/{department}/status', [DepartmentController::class, 'updateStatus'])->name('departments.update-status');
+    Route::get('departments/export', [DepartmentController::class, 'export'])->name('departments.export');
+    Route::resource('departments', DepartmentController::class);
+
+    /* ---------- ADMINISTRATION section — admin/manager only ---------- */
+    Route::middleware(['role:admin|super-admin|manager'])->group(function () {
+
+        // Users + profile
         Route::get('users/export', [UserController::class, 'export'])->name('users.export');
         Route::post('users/{user}/make-employee', [UserController::class, 'makeEmployee'])->name('users.make-employee');
         Route::get('users/{user}/profile', [UserController::class, 'profileShow'])->name('users.profile.show');
-
-         // ─── Profile Modal (dedicated endpoints) ───────────────
-        Route::get('users/{user}/profile/modal',  [ProfileController::class, 'showProfile'])->name('users.profile.modal.show');
-        Route::put('users/{user}/profile/modal',  [ProfileController::class, 'updateProfile'])->name('users.profile.modal.update');
-
+        Route::get('users/{user}/profile/modal', [ProfileController::class, 'showProfile'])->name('users.profile.modal.show');
+        Route::put('users/{user}/profile/modal', [ProfileController::class, 'updateProfile'])->name('users.profile.modal.update');
         Route::resource('users', UserController::class);
 
-        // ── Profile ───────────────────────────────────────────
+        // Own profile
         Route::get('profile/index', [UserController::class, 'profile'])->name('users.profile');
         Route::put('profile/update', [UserController::class, 'profileUpdate'])->name('users.profile.update');
 
-        // ── Geo ───────────────────────────────────────────────
-        // routes/web.php
-        Route::get('countries/export', [CountryController::class, 'export'])->name('countries.export');
-        Route::resource('countries', CountryController::class);
-        Route::get('cities/export', [CityController::class, 'export'])->name('cities.export');
-        Route::resource('cities', CityController::class);
-
-        Route::get('states/export', [StateController::class, 'export'])->name('states.export');
-        Route::resource('states', StateController::class);
-
-     
-
-        // ── Branches ──────────────────────────────────────────
-        Route::patch('branches/{branch}/status', [BranchController::class, 'updateStatus'])
-            ->name('branches.update-status');
-        Route::resource('branches', BranchController::class);
-
-        // ── Departments ───────────────────────────────────────
-        Route::patch('departments/{department}/status', [DepartmentController::class, 'updateStatus'])
-            ->name('departments.update-status');
-        Route::get('departments/export', [DepartmentController::class, 'export'])->name('departments.export');
-        Route::resource('departments', DepartmentController::class);
-
-        // ── Access control ────────────────────────────────────
+        // ACL
         Route::resource('permissions', PermissionController::class);
         Route::resource('roles', RoleController::class);
+
+        // Social Services
+        Route::post('social-services/reorder', [SocialServiceController::class, 'reorder'])->name('social.services.reorder');
+        Route::get('social-services', [SocialServiceController::class, 'index'])->name('social.services.index');
+        Route::post('social-services', [SocialServiceController::class, 'store'])->name('social.services.store');
+        Route::put('social-services/{social_service}', [SocialServiceController::class, 'update'])->name('social.services.update');
+        Route::patch('social-services/{social_service}', [SocialServiceController::class, 'update'])->name('social.services.patch');
+        Route::delete('social-services/{social_service}', [SocialServiceController::class, 'destroy'])->name('social.services.destroy');
+
+        // Optional audit/settings (create when ready)
+        // Route::get('audit', [...])->name('audit.index');
+        // Route::get('settings', [...])->name('settings.index');
     });
-
-
-    // Route::get('{any}', function () {
-    //     return view('admin.pages.Employee.index');
-    // })->where('any', '.*');
-
-
-
-    // Serve the SPA only for paths that are NOT real files
-    Route::get('/{any}', function () {
-        return view('admin.pages.Employee.index');
-    })->where('any', '^(?!js/|css/|images/|fonts/|storage/|build/).*$');
 });
 
-
-/*
-|--------------------------------------------------------------------------
-| Catch-all — MUST BE LAST and OUTSIDE auth middleware
-|--------------------------------------------------------------------------
-*/
-// Route::fallback(function () {
-//     abort(404);
-// });
-
-// ── at the bottom of routes/web.php ──
-Route::fallback(function () {
-    if (auth()->check()) {
-        return redirect()->route('users.index');
-    }
-    return redirect()->route('login');
+/* SPA fallback inside auth */
+Route::middleware(['auth'])->group(function () {
+    Route::get('/{any}', fn() => view('admin.pages.Employee.index'))
+        ->where('any', '^(?!js/|css/|images/|fonts/|storage/|build/).*$');
 });
+
+Route::fallback(fn() => auth()->check()
+    ? redirect()->route('users.index')
+    : redirect()->route('login'));

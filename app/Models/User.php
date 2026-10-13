@@ -30,6 +30,8 @@ class User extends Authenticatable
         'status',
         'created_by',
         'updated_by',
+        'last_login_at',
+        'last_login_ip',
     ];
 
 
@@ -100,5 +102,27 @@ class User extends Authenticatable
         }
 
         return ActiveStatus::tryFrom((int) $status)?->label() ?? (string) $status;
+    }
+
+
+
+    // relations
+    public function socialAccounts()
+    {
+        return $this->hasMany(SocialAccount::class);
+    }
+
+    public function socialAccount(string $provider)
+    {
+        return $this->hasOne(SocialAccount::class)->where('provider', $provider);
+    }
+
+    /**
+     * Convenience: get avatar or fallback via Profile.
+     */
+    public function getAvatarUrlAttribute(): string
+    {
+        return $this->profile?->avatar_url
+            ?? 'https://ui-avatars.com/api/?name=' . urlencode($this->username ?? 'User');
     }
 }

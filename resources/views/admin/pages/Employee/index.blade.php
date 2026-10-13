@@ -7,6 +7,7 @@
 @section('dashboard_content')
     <div id="app">
         <employee-index />
+        {{-- <example-component /> --}}
         <router-view />
     </div>
 @endsection

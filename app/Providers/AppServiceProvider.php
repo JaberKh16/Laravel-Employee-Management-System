@@ -6,6 +6,7 @@ use App\Models\City;
 use App\Models\Country;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\RegisteredSocialService;
 use App\Models\State;
 use App\Models\User;
 use App\Observers\CityObserver;
@@ -14,11 +15,11 @@ use App\Observers\DepartmentObserver;
 use App\Observers\EmployeeObserver;
 use App\Observers\StateObserver;
 use App\Observers\UserObserver;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -49,6 +50,7 @@ class AppServiceProvider extends ServiceProvider
         Employee::observe(EmployeeObserver::class);
         User::observe(UserObserver::class);
         Paginator::useBootstrap();
+        RegisteredSocialService::bootstrapIntoConfig();
 
 
 

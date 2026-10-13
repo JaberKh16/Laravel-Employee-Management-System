@@ -28141,10 +28141,13 @@ __webpack_require__(/*! ./bootstrap */ "./resources/js/bootstrap.js");
 
 
 
+// import ExampleComponent from './components/ExampleComponent.vue';
+
 var app = (0,vue__WEBPACK_IMPORTED_MODULE_3__.createApp)({});
 
 // Register global components if you still need them
 app.component('employee-index', _pages_Employee_Index_vue__WEBPACK_IMPORTED_MODULE_5__["default"]);
+// app.component('example-component', ExampleComponent);
 app.use(_router_index_js__WEBPACK_IMPORTED_MODULE_4__["default"]);
 app.mount('#app');
 

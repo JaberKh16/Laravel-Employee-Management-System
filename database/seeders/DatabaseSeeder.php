@@ -36,6 +36,7 @@ class DatabaseSeeder extends Seeder
 
                 // 4. Departments — depend on users
             DepartmentSeeder::class,
+            RegisteredSocialServiceSeeder::class
         ]);
     }
 }

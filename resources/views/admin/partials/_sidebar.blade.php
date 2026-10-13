@@ -1,8 +1,29 @@
-{{-- Sidebar / Dock --}}
+{{-- =========================================================
+     SIDEBAR — HTML only (CSS in sidebar.css, JS in sidebar.js)
+     ========================================================= --}}
 @php
-    $isSystemActive  = request()->routeIs('countries.*', 'states.*', 'cities.*', 'departments.*',  'branches.*');
-    $isUsersActive   = request()->routeIs('users.*', 'roles.*', 'permissions.*');
-    $isEmployeeActive = request()->is('employees*');
+    $user = auth()->user();
+
+    $isDashboardActive = request()->routeIs('home');
+    $isEmployeeActive  = request()->is('employees*');
+
+    $isSystemActive = request()->routeIs(
+        'countries.*', 'states.*', 'cities.*',
+        'departments.*', 'branches.*'
+    );
+    $isAdminActive = request()->routeIs(
+        'users.*', 'roles.*', 'permissions.*',
+        'social.services.*'
+    );
+    $isThemeActive = request()->routeIs('settings.theme*');
+
+    $isAdmin = $user && method_exists($user, 'hasRole')
+        ? $user->hasRole(['admin', 'super-admin'])
+        : false;
+
+    $isManager = $user && method_exists($user, 'hasAnyRole')
+        ? $user->hasAnyRole(['admin', 'super-admin', 'manager'])
+        : $isAdmin;
 @endphp
 
 {{-- Mobile backdrop --}}
@@ -15,19 +36,17 @@
        class="fixed top-0 left-0 z-40 h-screen pt-16
               w-64
               bg-white border-r border-gray-200
-              transition-[transform,width] duration-200 ease-out
+              transition-[transform,width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
               -translate-x-full lg:translate-x-0
               dark:bg-gray-900 dark:border-gray-800"
        aria-label="{{ __('Sidebar') }}">
 
-    <div class="flex flex-col h-full px-3 pb-4 overflow-y-auto
-                [scrollbar-width:thin]">
+    <div class="flex flex-col h-full px-3 pb-4 overflow-y-auto [scrollbar-width:thin]">
 
         {{-- Brand --}}
         <a href="{{ route('home') }}"
            class="group flex items-center gap-3 px-2 py-3 mb-2 rounded-lg
-                  hover:bg-gray-100 dark:hover:bg-gray-800
-                  transition-colors">
+                  hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
             <span class="flex-shrink-0 inline-flex items-center justify-center
                          w-9 h-9 rounded-lg
                          bg-gradient-to-br from-blue-500 to-indigo-600 text-white
@@ -37,48 +56,46 @@
                 </svg>
             </span>
             <div class="sidebar-label flex flex-col leading-tight min-w-0">
-                <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                    SB Admin
-                </span>
-                <span class="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    v2 · workspace
-                </span>
+                <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">SB Admin</span>
+                <span class="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">v2 · workspace</span>
             </div>
         </a>
 
-        {{-- Command / search hint --}}
-        <button type="button"
-                class="sidebar-label mb-3 flex items-center justify-between gap-2
-                       w-full px-3 py-2 text-sm rounded-lg
-                       bg-gray-50 border border-gray-200
-                       text-gray-500 hover:bg-gray-100 hover:text-gray-700
-                       dark:bg-gray-800/60 dark:border-gray-700 dark:text-gray-400
-                       dark:hover:bg-gray-800 dark:hover:text-gray-200
-                       transition-colors">
-            <span class="flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
-                </svg>
-                {{ __('Search…') }}
-            </span>
-            <kbd class="text-[10px] font-semibold px-1.5 py-0.5 rounded
-                        bg-white border border-gray-200 text-gray-500
-                        dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400">⌘K</kbd>
-        </button>
+        {{-- ✨ Modern colorful search box --}}
+         <div class="sidebar-label-wrap transition-[opacity,height,margin] duration-200 ease-out
+                    sidebar-collapsed:h-0 sidebar-collapsed:opacity-0 sidebar-collapsed:mb-0
+                    h-auto opacity-100 mb-3">
+            <button type="button" id="open-command-palette" class="flex items-center justify-between gap-2
+                           w-full px-3 py-2 text-sm rounded-lg
+                           bg-gray-50 border border-gray-200
+                           text-gray-500 hover:bg-gray-100 hover:text-gray-700
+                           dark:bg-gray-800/60 dark:border-gray-700 dark:text-gray-400
+                           dark:hover:bg-gray-800 dark:hover:text-gray-200
+                           transition-colors">
+                <span class="flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+                    </svg>
+                    {{ __('Search…') }}
+                </span>
+                <kbd class="text-[10px] font-semibold px-1.5 py-0.5 rounded
+                            bg-white border border-gray-200 text-gray-500
+                            dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400">⌘K</kbd>
+            </button>
+        </div>
+
 
         {{-- Nav --}}
         <nav class="flex-1">
             <ul class="space-y-1 text-sm font-medium">
 
                 {{-- Dashboard --}}
-                @php $dashboardActive = request()->routeIs('home'); @endphp
                 <li>
                     <a href="{{ route('home') }}"
                        title="{{ __('Dashboard') }}"
-                       class="group flex items-center gap-3 px-2.5 py-2 rounded-lg
-                              transition-colors
-                              {{ $dashboardActive
+                       class="group flex items-center gap-3 px-2.5 py-2 rounded-lg transition-colors
+                              {{ $isDashboardActive
                                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
                                     : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}">
                         <svg class="flex-shrink-0 w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -88,12 +105,11 @@
                     </a>
                 </li>
 
-                {{-- Employee Management --}}
+                {{-- Employees --}}
                 <li>
                     <a href="/employees"
                        title="{{ __('Employee Management') }}"
-                       class="group flex items-center gap-3 px-2.5 py-2 rounded-lg
-                              transition-colors
+                       class="group flex items-center gap-3 px-2.5 py-2 rounded-lg transition-colors
                               {{ $isEmployeeActive
                                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
                                     : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}">
@@ -104,12 +120,67 @@
                     </a>
                 </li>
 
-                {{-- System Management --}}
+                {{-- Administration --}}
+                @if ($isManager)
+                    <li>
+                        <button type="button"
+                                data-collapse-toggle="dropdown-admin"
+                                aria-controls="dropdown-admin"
+                                title="{{ __('Administration') }}"
+                                class="group flex items-center justify-between gap-2 w-full
+                                       px-2.5 py-2 rounded-lg transition-colors
+                                       {{ $isAdminActive
+                                             ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white'
+                                             : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}">
+                            <span class="flex items-center gap-3 min-w-0">
+                                <svg class="flex-shrink-0 w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd"
+                                          d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                          clip-rule="evenodd"/>
+                                </svg>
+                                <span class="sidebar-label truncate">{{ __('Administration') }}</span>
+                            </span>
+                            <svg class="sidebar-label flex-shrink-0 w-4 h-4 transition-transform duration-200
+                                        group-aria-expanded:rotate-180"
+                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+
+                        <ul id="dropdown-admin"
+                            class="{{ $isAdminActive ? '' : 'hidden' }} mt-1 space-y-0.5
+                                   pl-4 border-l border-gray-200 dark:border-gray-700 ml-4">
+                            @foreach (array_filter([
+                                Route::has('users.index')       ? 'users.index'       : null => __('Users'),
+                                Route::has('roles.index')       ? 'roles.index'       : null => __('Roles'),
+                                Route::has('permissions.index') ? 'permissions.index' : null => __('Permissions'),
+                                Route::has('social.services.index') ? 'social.services.index' : null => __('Social Services'),
+                                Route::has('audit.index')       ? 'audit.index'       : null => __('Audit Log'),
+                            ], fn ($k) => $k !== null, ARRAY_FILTER_USE_KEY) as $routeName => $label)
+                                @continue(! Route::has($routeName))
+                                @php $active = request()->routeIs($routeName); @endphp
+                                <li>
+                                    <a href="{{ route($routeName) }}"
+                                       class="sidebar-label flex items-center gap-2 pl-3 pr-3 py-1.5
+                                              text-[13px] rounded-md transition-colors
+                                              {{ $active
+                                                    ? 'text-blue-700 bg-blue-50 dark:text-blue-400 dark:bg-blue-500/10'
+                                                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800' }}">
+                                        <span class="w-1 h-1 rounded-full bg-current opacity-50"></span>
+                                        {{ $label }}
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </li>
+                @endif
+
+                {{-- System --}}
                 <li>
                     <button type="button"
                             data-collapse-toggle="dropdown-system"
                             aria-controls="dropdown-system"
-                            title="{{ __('System Management') }}"
+                            title="{{ __('System') }}"
                             class="group flex items-center justify-between gap-2 w-full
                                    px-2.5 py-2 rounded-lg transition-colors
                                    {{ $isSystemActive
@@ -123,11 +194,10 @@
                             </svg>
                             <span class="sidebar-label truncate">{{ __('System') }}</span>
                         </span>
-                        <svg class="sidebar-label flex-shrink-0 w-4 h-4 transition-transform
+                        <svg class="sidebar-label flex-shrink-0 w-4 h-4 transition-transform duration-200
                                     group-aria-expanded:rotate-180"
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M19 9l-7 7-7-7"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                         </svg>
                     </button>
 
@@ -140,10 +210,11 @@
                             'cities.index'      => __('City'),
                             'departments.index' => __('Department'),
                             'branches.index'    => __('Branch'),
-                        ] as $route => $label)
-                            @php $active = request()->routeIs($route); @endphp
+                        ] as $routeName => $label)
+                            @continue(! Route::has($routeName))
+                            @php $active = request()->routeIs($routeName); @endphp
                             <li>
-                                <a href="{{ route($route) }}"
+                                <a href="{{ route($routeName) }}"
                                    class="sidebar-label flex items-center gap-2 pl-3 pr-3 py-1.5
                                           text-[13px] rounded-md transition-colors
                                           {{ $active
@@ -157,59 +228,27 @@
                     </ul>
                 </li>
 
-                {{-- Users Management --}}
+                {{-- Theme Options --}}
                 <li>
                     <button type="button"
-                            data-collapse-toggle="dropdown-users"
-                            aria-controls="dropdown-users"
-                            title="{{ __('Users Management') }}"
-                            class="group flex items-center justify-between gap-2 w-full
-                                   px-2.5 py-2 rounded-lg transition-colors
-                                   {{ $isUsersActive
-                                         ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white'
+                            id="open-theme-drawer"
+                            title="{{ __('Theme Options') }}"
+                            class="group flex items-center gap-3 w-full px-2.5 py-2 rounded-lg
+                                   transition-colors
+                                   {{ $isThemeActive
+                                         ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
                                          : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}">
-                        <span class="flex items-center gap-3 min-w-0">
-                            <svg class="flex-shrink-0 w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
-                            </svg>
-                            <span class="sidebar-label truncate">{{ __('Adminstrators') }}</span>
-                        </span>
-                        <svg class="sidebar-label flex-shrink-0 w-4 h-4 transition-transform
-                                    group-aria-expanded:rotate-180"
-                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M19 9l-7 7-7-7"/>
+                        <svg class="flex-shrink-0 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                  d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
                         </svg>
+                        <span class="sidebar-label truncate">{{ __('Theme Options') }}</span>
                     </button>
-
-                    <ul id="dropdown-users"
-                        class="{{ $isUsersActive ? '' : 'hidden' }} mt-1 space-y-0.5
-                               pl-4 border-l border-gray-200 dark:border-gray-700 ml-4">
-                        @foreach ([
-                            'users.index'       => __('Users'),
-                            'roles.index'       => __('Role'),
-                            'permissions.index' => __('Permission'),
-                        ] as $route => $label)
-                            @php $active = request()->routeIs($route); @endphp
-                            <li>
-                                <a href="{{ route($route) }}"
-                                   class="sidebar-label flex items-center gap-2 pl-3 pr-3 py-1.5
-                                          text-[13px] rounded-md transition-colors
-                                          {{ $active
-                                                ? 'text-blue-700 bg-blue-50 dark:text-blue-400 dark:bg-blue-500/10'
-                                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800' }}">
-                                    <span class="w-1 h-1 rounded-full bg-current opacity-50"></span>
-                                    {{ $label }}
-                                </a>
-                            </li>
-                        @endforeach
-                    </ul>
                 </li>
-
             </ul>
         </nav>
 
-        {{-- Footer: user + collapse toggle --}}
+        {{-- Footer --}}
         <div class="pt-3 mt-3 border-t border-gray-200 dark:border-gray-800">
             @auth
                 <div class="flex items-center gap-2 px-1">
@@ -217,33 +256,425 @@
                                  bg-gradient-to-br from-blue-500 to-indigo-600
                                  text-white text-xs font-semibold
                                  flex items-center justify-center">
-                        {{ strtoupper(substr(Auth::user()->username ?? 'U', 0, 1)) }}
+                        {{ strtoupper(substr($user->username ?? 'U', 0, 1)) }}
                     </span>
                     <div class="sidebar-label flex-1 min-w-0">
                         <div class="text-xs font-medium text-gray-900 dark:text-white truncate">
-                            {{ Auth::user()->username }}
+                            {{ $user->username }}
                         </div>
                         <div class="text-[11px] text-gray-500 dark:text-gray-400 truncate">
-                            {{ Auth::user()->email ?? '' }}
+                            {{ $user->email ?? '' }}
                         </div>
                     </div>
                 </div>
             @endauth
 
-            {{-- Collapse (rail) toggle — desktop only --}}
             <button type="button"
                     id="sidebar-collapse-toggle"
+                    aria-label="{{ __('Collapse sidebar') }}"
                     class="hidden lg:flex items-center gap-2 w-full mt-2 px-2.5 py-2
                            text-xs font-medium rounded-lg
                            text-gray-500 hover:text-gray-900 hover:bg-gray-100
                            dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800
                            transition-colors">
-                <svg class="flex-shrink-0 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M15 19l-7-7 7-7"/>
+                <svg id="sidebar-collapse-icon"
+                     class="flex-shrink-0 w-4 h-4 transition-transform duration-300"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                 </svg>
                 <span class="sidebar-label">{{ __('Collapse') }}</span>
             </button>
         </div>
     </div>
 </aside>
+
+{{-- ========================================================= --}}
+{{-- ⌘K COMMAND PALETTE                                          --}}
+{{-- ========================================================= --}}
+<div id="command-palette"
+     class="fixed inset-0 z-[60] hidden"
+     aria-modal="true" role="dialog">
+    <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" data-palette-close></div>
+    <div class="relative mx-auto mt-24 max-w-xl mx-4">
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl ring-1 ring-black/5
+                    dark:ring-white/10 overflow-hidden">
+            <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
+                </svg>
+                <input id="command-input" type="text" autocomplete="off"
+                       placeholder="{{ __('Search pages, users, actions…') }}"
+                       class="flex-1 bg-transparent border-0 text-sm text-gray-900 dark:text-white
+                              placeholder-gray-400 focus:outline-none focus:ring-0">
+                <kbd class="text-[10px] font-semibold px-1.5 py-0.5 rounded
+                            bg-gray-100 border border-gray-200 text-gray-500
+                            dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400">ESC</kbd>
+            </div>
+            <ul id="command-results" class="max-h-80 overflow-y-auto py-2 text-sm"></ul>
+        </div>
+    </div>
+</div>
+
+{{-- ========================================================= --}}
+{{-- 🎨 THEME OPTIONS DRAWER                                     --}}
+{{-- ========================================================= --}}
+<div id="theme-drawer" class="fixed inset-0 z-[70] hidden" aria-modal="true" role="dialog">
+    <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" data-theme-close></div>
+
+    <div id="theme-panel"
+         class="absolute top-0 right-0 h-full w-full max-w-sm
+                bg-white dark:bg-gray-900 shadow-2xl
+                translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
+                flex flex-col">
+
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+            <div>
+                <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('Theme Options') }}</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ __('Personalize your dashboard.') }}</p>
+            </div>
+            <button type="button" data-theme-close
+                    class="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100
+                           dark:hover:text-gray-200 dark:hover:bg-gray-800 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-5 space-y-6">
+            <section>
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+                    {{ __('Appearance') }}
+                </h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" data-theme-mode="light"
+                            class="theme-mode-btn flex flex-col items-center gap-2 p-3 rounded-xl
+                                   border border-gray-200 dark:border-gray-800 hover:border-blue-400 transition">
+                        <span class="w-full h-12 rounded-lg bg-white border border-gray-200"></span>
+                        <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ __('Light') }}</span>
+                    </button>
+                    <button type="button" data-theme-mode="dark"
+                            class="theme-mode-btn flex flex-col items-center gap-2 p-3 rounded-xl
+                                   border border-gray-200 dark:border-gray-800 hover:border-blue-400 transition">
+                        <span class="w-full h-12 rounded-lg bg-gray-900 border border-gray-700"></span>
+                        <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ __('Dark') }}</span>
+                    </button>
+                </div>
+            </section>
+
+            <section>
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+                    {{ __('Accent color') }}
+                </h3>
+                <div id="theme-color-list" class="flex flex-wrap gap-2">
+                    @foreach ([
+                        'blue' => '#3b82f6', 'indigo' => '#6366f1', 'violet' => '#8b5cf6',
+                        'pink' => '#ec4899', 'rose' => '#f43f5e', 'amber' => '#f59e0b',
+                        'emerald' => '#10b981', 'teal' => '#14b8a6', 'cyan' => '#06b6d4', 'slate' => '#64748b',
+                    ] as $name => $hex)
+                        <button type="button"
+                                data-theme-color="{{ $name }}"
+                                data-theme-hex="{{ $hex }}"
+                                class="theme-color-btn w-9 h-9 rounded-full ring-2 ring-transparent
+                                       transition-transform hover:scale-110"
+                                style="background-color: {{ $hex }}"
+                                title="{{ ucfirst($name) }}"></button>
+                    @endforeach
+                </div>
+            </section>
+
+            <section>
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+                    {{ __('Density') }}
+                </h3>
+                <div class="grid grid-cols-3 gap-2">
+                    @foreach (['compact' => __('Compact'), 'comfortable' => __('Comfort'), 'spacious' => __('Spacious')] as $key => $label)
+                        <button type="button" data-theme-density="{{ $key }}"
+                                class="theme-density-btn px-3 py-2 rounded-lg text-xs font-medium
+                                       border border-gray-200 dark:border-gray-800
+                                       text-gray-700 dark:text-gray-300 hover:border-blue-400 transition">
+                            {{ $label }}
+                        </button>
+                    @endforeach
+                </div>
+            </section>
+
+            <section>
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+                    {{ __('Layout width') }}
+                </h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" data-theme-layout="fluid"
+                            class="theme-layout-btn px-3 py-2 rounded-lg text-xs font-medium
+                                   border border-gray-200 dark:border-gray-800
+                                   text-gray-700 dark:text-gray-300 hover:border-blue-400 transition">
+                        {{ __('Fluid') }}
+                    </button>
+                    <button type="button" data-theme-layout="boxed"
+                            class="theme-layout-btn px-3 py-2 rounded-lg text-xs font-medium
+                                   border border-gray-200 dark:border-gray-800
+                                   text-gray-700 dark:text-gray-300 hover:border-blue-400 transition">
+                        {{ __('Boxed') }}
+                    </button>
+                </div>
+            </section>
+
+            <section>
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+                    {{ __('Sidebar style') }}
+                </h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" data-theme-sidebar="default"
+                            class="theme-sidebar-btn px-3 py-2 rounded-lg text-xs font-medium
+                                   border border-gray-200 dark:border-gray-800
+                                   text-gray-700 dark:text-gray-300 hover:border-blue-400 transition">
+                        {{ __('Default') }}
+                    </button>
+                    <button type="button" data-theme-sidebar="gradient"
+                            class="theme-sidebar-btn px-3 py-2 rounded-lg text-xs font-medium
+                                   border border-gray-200 dark:border-gray-800
+                                   text-gray-700 dark:text-gray-300 hover:border-blue-400 transition">
+                        {{ __('Gradient') }}
+                    </button>
+                </div>
+            </section>
+        </div>
+
+        <div class="flex items-center justify-between gap-3 px-5 py-4 border-t border-gray-200 dark:border-gray-800">
+            <button type="button" id="theme-reset"
+                    class="px-3 py-2 rounded-lg text-xs font-medium
+                           text-gray-600 hover:text-gray-900 hover:bg-gray-100
+                           dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800 transition">
+                {{ __('Reset') }}
+            </button>
+            <button type="button" data-theme-close
+                    class="px-4 py-2 rounded-lg text-xs font-semibold text-white
+                           bg-blue-600 hover:bg-blue-700 transition">
+                {{ __('Done') }}
+            </button>
+        </div>
+    </div>
+</div>
+
+{{-- Palette items passed to JS --}}
+<script>
+    window.SIDEBAR_PALETTE_ITEMS = [
+        { label: @json(__('Dashboard')),  url: @json(route('home')) },
+        { label: @json(__('Employees')),  url: @json('/employees') },
+        @if (Route::has('users.index'))       { label: @json(__('Users')),        url: @json(route('users.index')) }, @endif
+        @if (Route::has('roles.index'))       { label: @json(__('Roles')),        url: @json(route('roles.index')) }, @endif
+        @if (Route::has('permissions.index')) { label: @json(__('Permissions')),  url: @json(route('permissions.index')) }, @endif
+        @if (Route::has('countries.index'))   { label: @json(__('Countries')),    url: @json(route('countries.index')) }, @endif
+        @if (Route::has('states.index'))      { label: @json(__('States')),       url: @json(route('states.index')) }, @endif
+        @if (Route::has('cities.index'))      { label: @json(__('Cities')),       url: @json(route('cities.index')) }, @endif
+        @if (Route::has('departments.index')) { label: @json(__('Departments')),  url: @json(route('departments.index')) }, @endif
+        @if (Route::has('branches.index'))    { label: @json(__('Branches')),     url: @json(route('branches.index')) }, @endif
+        @if (Route::has('social.services.index')) { label: @json(__('Social Services')), url: @json(route('social.services.index')) }, @endif
+    ];
+
+
+    /* =========================================================
+       SIDEBAR — collapse + accordion + command palette + theme drawer
+       ========================================================= */
+    (function () {
+        'use strict';
+
+        function boot() {
+            const body      = document.body;
+            const sidebar   = document.getElementById('sidebar');
+            if (!sidebar) return;
+
+            const toggle      = document.getElementById('sidebar-collapse-toggle');
+            const backdrop    = document.getElementById('sidebar-backdrop');
+            const STORAGE_KEY = 'sb.sidebar.collapsed';
+
+            /* 1. Sidebar collapse */
+            if (localStorage.getItem(STORAGE_KEY) === 'true') {
+                body.classList.add('no-anim', 'sidebar-collapsed');
+                requestAnimationFrame(() => requestAnimationFrame(() =>
+                    body.classList.remove('no-anim')));
+            }
+
+            toggle?.addEventListener('click', () => {
+                const collapsed = body.classList.toggle('sidebar-collapsed');
+                localStorage.setItem(STORAGE_KEY, collapsed ? 'true' : 'false');
+                window.dispatchEvent(new Event('resize'));
+            });
+
+            document.addEventListener('keydown', (e) => {
+                const tag = (e.target.tagName || '').toLowerCase();
+                if (['input', 'textarea', 'select'].includes(tag)) return;
+                if (e.key === '[' || e.key === '\\') {
+                    e.preventDefault();
+                    toggle?.click();
+                }
+            });
+
+            /* Mobile drawer */
+            document.querySelectorAll('[data-drawer-toggle="sidebar"]').forEach(el => {
+                el.addEventListener('click', () => {
+                    const open = sidebar.classList.toggle('-translate-x-0');
+                    sidebar.classList.toggle('-translate-x-full', !open);
+                    backdrop?.classList.toggle('hidden', !open);
+                });
+            });
+            backdrop?.addEventListener('click', () => {
+                sidebar.classList.add('-translate-x-full');
+                sidebar.classList.remove('-translate-x-0');
+                backdrop.classList.add('hidden');
+            });
+
+            /* 2. Accordion toggles */
+            document.querySelectorAll('[data-collapse-toggle]').forEach(btn => {
+                const target = document.getElementById(btn.getAttribute('data-collapse-toggle'));
+                if (!target) return;
+                btn.setAttribute('aria-expanded', target.classList.contains('hidden') ? 'false' : 'true');
+                btn.addEventListener('click', () => {
+                    const opened = !target.classList.toggle('hidden');
+                    btn.setAttribute('aria-expanded', opened ? 'true' : 'false');
+                });
+            });
+
+            /* 3. Command palette */
+            const palette = document.getElementById('command-palette');
+            const input   = document.getElementById('command-input');
+            const results = document.getElementById('command-results');
+            const opener  = document.getElementById('open-command-palette');
+
+            if (palette && input && results) {
+                const items = window.SIDEBAR_PALETTE_ITEMS || [];
+
+                const render = (filter = '') => {
+                    const q = filter.toLowerCase();
+                    const list = items.filter(i => i.label.toLowerCase().includes(q));
+                    results.innerHTML = list.length
+                        ? list.map(i => `
+                            <li>
+                                <a href="${i.url}" class="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-200
+                                                          hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="w-1 h-1 rounded-full bg-current opacity-50"></span>${i.label}
+                                </a>
+                            </li>`).join('')
+                        : `<li class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">No matches</li>`;
+                };
+
+                const openPalette  = () => { palette.classList.remove('hidden'); render(); input.value = ''; input.focus(); };
+                const closePalette = () => { palette.classList.add('hidden'); };
+
+                opener?.addEventListener('click', openPalette);
+                input.addEventListener('input', e => render(e.target.value));
+                palette.querySelectorAll('[data-palette-close]').forEach(el =>
+                    el.addEventListener('click', closePalette));
+
+                document.addEventListener('keydown', (e) => {
+                    const isMac = navigator.platform.toLowerCase().includes('mac');
+                    const cmdK  = (isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === 'k';
+                    if (cmdK) {
+                        e.preventDefault();
+                        palette.classList.contains('hidden') ? openPalette() : closePalette();
+                    }
+                    if (e.key === 'Escape' && !palette.classList.contains('hidden')) closePalette();
+                });
+            }
+
+            /* 4. Theme drawer */
+            const drawer  = document.getElementById('theme-drawer');
+            const panel   = document.getElementById('theme-panel');
+            const opener2 = document.getElementById('open-theme-drawer');
+
+            if (drawer && panel) {
+                const TKEY = 'sb.theme';
+
+                const defaults = {
+                    mode: 'light', accent: 'blue', density: 'comfortable',
+                    layout: 'fluid', sidebar: 'default'
+                };
+
+                const readState = () => {
+                    try { return { ...defaults, ...JSON.parse(localStorage.getItem(TKEY) || '{}') }; }
+                    catch (_) { return { ...defaults }; }
+                };
+                const writeState = (state) => {
+                    try { localStorage.setItem(TKEY, JSON.stringify(state)); } catch (_) {}
+                };
+
+                const applyState = (state) => {
+                    document.documentElement.classList.toggle('dark', state.mode === 'dark');
+
+                    body.dataset.accent  = state.accent;
+                    body.dataset.density = state.density;
+                    body.dataset.layout  = state.layout;
+                    body.dataset.sidebar = state.sidebar;
+
+                    document.querySelectorAll('.theme-mode-btn').forEach(b =>
+                        b.classList.toggle('is-active', b.dataset.themeMode === state.mode));
+                    document.querySelectorAll('.theme-color-btn').forEach(b =>
+                        b.classList.toggle('is-active', b.dataset.themeColor === state.accent));
+                    document.querySelectorAll('.theme-density-btn').forEach(b =>
+                        b.classList.toggle('is-active', b.dataset.themeDensity === state.density));
+                    document.querySelectorAll('.theme-layout-btn').forEach(b =>
+                        b.classList.toggle('is-active', b.dataset.themeLayout === state.layout));
+                    document.querySelectorAll('.theme-sidebar-btn').forEach(b =>
+                        b.classList.toggle('is-active', b.dataset.themeSidebar === state.sidebar));
+                };
+
+                let state = readState();
+                applyState(state);
+
+                const openDrawer = () => {
+                    drawer.classList.remove('hidden');
+                    requestAnimationFrame(() => panel.classList.remove('translate-x-full'));
+                    body.classList.add('overflow-hidden');
+                };
+                const closeDrawer = () => {
+                    panel.classList.add('translate-x-full');
+                    setTimeout(() => {
+                        drawer.classList.add('hidden');
+                        body.classList.remove('overflow-hidden');
+                    }, 300);
+                };
+
+                opener2?.addEventListener('click', openDrawer);
+                drawer.querySelectorAll('[data-theme-close]').forEach(el =>
+                    el.addEventListener('click', closeDrawer));
+                document.addEventListener('keydown', e => {
+                    if (e.key === 'Escape' && !drawer.classList.contains('hidden')) closeDrawer();
+                });
+
+                document.querySelectorAll('.theme-mode-btn').forEach(b =>
+                    b.addEventListener('click', () => {
+                        state.mode = b.dataset.themeMode; writeState(state); applyState(state);
+                    }));
+                document.querySelectorAll('.theme-color-btn').forEach(b =>
+                    b.addEventListener('click', () => {
+                        state.accent = b.dataset.themeColor; writeState(state); applyState(state);
+                    }));
+                document.querySelectorAll('.theme-density-btn').forEach(b =>
+                    b.addEventListener('click', () => {
+                        state.density = b.dataset.themeDensity; writeState(state); applyState(state);
+                    }));
+                document.querySelectorAll('.theme-layout-btn').forEach(b =>
+                    b.addEventListener('click', () => {
+                        state.layout = b.dataset.themeLayout; writeState(state); applyState(state);
+                    }));
+                document.querySelectorAll('.theme-sidebar-btn').forEach(b =>
+                    b.addEventListener('click', () => {
+                        state.sidebar = b.dataset.themeSidebar; writeState(state); applyState(state);
+                    }));
+
+                document.getElementById('theme-reset')?.addEventListener('click', () => {
+                    state = { ...defaults };
+                    writeState(state);
+                    applyState(state);
+                });
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', boot);
+        } else {
+            boot();
+        }
+    })();
+</script>
