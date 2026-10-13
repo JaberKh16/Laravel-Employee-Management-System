@@ -10,6 +10,7 @@ use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Backend\StateController;
 use App\Http\Controllers\Backend\UserController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -79,15 +80,38 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         // Optional audit/settings (create when ready)
         // Route::get('audit', [...])->name('audit.index');
         // Route::get('settings', [...])->name('settings.index');
+
+
+
+        /* =========================================================
+       NOTIFICATIONS — available to every authenticated user
+       ========================================================= */
+        Route::prefix('notifications')->name('notifications.')->group(function () {
+            Route::get('/', [NotificationController::class, 'index'])->name('index');
+            Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');
+            Route::patch('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
+            Route::patch('/{notification}/read', [NotificationController::class, 'markAsRead'])->name('read');
+            Route::patch('/{notification}/dismiss', [NotificationController::class, 'dismiss'])->name('dismiss');
+            Route::delete('/{notification}', [NotificationController::class, 'destroy'])->name('destroy');
+        });
     });
 });
-
-/* SPA fallback inside auth */
+/*
+|--------------------------------------------------------------------------
+| SPA fallback — catches deep links for the employee SPA
+| Must stay LAST, inside auth so it never hijacks public assets
+|--------------------------------------------------------------------------
+*/
 Route::middleware(['auth'])->group(function () {
     Route::get('/{any}', fn() => view('admin.pages.Employee.index'))
         ->where('any', '^(?!js/|css/|images/|fonts/|storage/|build/).*$');
 });
 
+/*
+|--------------------------------------------------------------------------
+| Global fallback — bounce guests to login, users to their dashboard
+|--------------------------------------------------------------------------
+*/
 Route::fallback(fn() => auth()->check()
     ? redirect()->route('users.index')
     : redirect()->route('login'));

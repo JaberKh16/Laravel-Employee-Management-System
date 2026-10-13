@@ -1,8 +1,9 @@
 {{-- =========================================================
-     SIDEBAR — HTML only (CSS in sidebar.css, JS in sidebar.js)
+     SIDEBAR — HTML only
      ========================================================= --}}
 @php
     $user = auth()->user();
+    $user_role = $user && method_exists($user, 'getRoleNames') ? $user->getRoleNames()->first() : null;
 
     $isDashboardActive = request()->routeIs('home');
     $isEmployeeActive  = request()->is('employees*');
@@ -18,12 +19,20 @@
     $isThemeActive = request()->routeIs('settings.theme*');
 
     $isAdmin = $user && method_exists($user, 'hasRole')
-        ? $user->hasRole(['admin', 'super-admin'])
+        ? $user->hasRole(['Admin', 'super-admin'])
         : false;
 
     $isManager = $user && method_exists($user, 'hasAnyRole')
-        ? $user->hasAnyRole(['admin', 'super-admin', 'manager'])
+        ? $user->hasAnyRole(['Admin', 'super-admin', 'manager'])
         : $isAdmin;
+
+    $routeIndexes = [
+        'countries.index'   => __('Country'),
+        'states.index'      => __('State'),
+        'cities.index'      => __('City'),
+        'departments.index' => __('Department'),
+        'branches.index'    => __('Branch'),
+    ]
 @endphp
 
 {{-- Mobile backdrop --}}
@@ -45,9 +54,9 @@
 
         {{-- Brand --}}
         <a href="{{ route('home') }}"
-           class="group flex items-center gap-3 px-2 py-3 mb-2 rounded-lg
+           class="sb-brand group flex items-center gap-3 px-2 py-3 mb-2 rounded-lg
                   hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-            <span class="flex-shrink-0 inline-flex items-center justify-center
+            <span class="sb-brand-icon flex-shrink-0 inline-flex items-center justify-center
                          w-9 h-9 rounded-lg
                          bg-gradient-to-br from-blue-500 to-indigo-600 text-white
                          shadow-sm ring-1 ring-blue-500/20">
@@ -61,30 +70,63 @@
             </div>
         </a>
 
-        {{-- ✨ Modern colorful search box --}}
-         <div class="sidebar-label-wrap transition-[opacity,height,margin] duration-200 ease-out
-                    sidebar-collapsed:h-0 sidebar-collapsed:opacity-0 sidebar-collapsed:mb-0
-                    h-auto opacity-100 mb-3">
-            <button type="button" id="open-command-palette" class="flex items-center justify-between gap-2
-                           w-full px-3 py-2 text-sm rounded-lg
-                           bg-gray-50 border border-gray-200
-                           text-gray-500 hover:bg-gray-100 hover:text-gray-700
-                           dark:bg-gray-800/60 dark:border-gray-700 dark:text-gray-400
-                           dark:hover:bg-gray-800 dark:hover:text-gray-200
-                           transition-colors">
-                <span class="flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
-                    </svg>
-                    {{ __('Search…') }}
-                </span>
-                <kbd class="text-[10px] font-semibold px-1.5 py-0.5 rounded
-                            bg-white border border-gray-200 text-gray-500
-                            dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400">⌘K</kbd>
-            </button>
-        </div>
+        {{-- Search box + inline palette --}}
+        <div class="sidebar-label-wrap relative mb-3"
+             id="sidebar-search-wrap">
 
+            <button type="button"
+                    id="sidebar-search-trigger"
+                    class="sb-search2"
+                    aria-haspopup="listbox"
+                    aria-expanded="false"
+                    aria-controls="sidebar-search-panel">
+                <span class="sb-search2-ring" aria-hidden="true"></span>
+
+                <span class="sb-search2-inner">
+                    <span class="sb-search2-icon">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"
+                                  d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
+                        </svg>
+                    </span>
+
+                    <span class="sb-search2-text">
+                        <span class="sb-search2-label">{{ __('Search…') }}</span>
+                        <span class="sb-search2-hint">{{ __('pages, actions') }}</span>
+                    </span>
+
+                    <span class="sb-search2-kbd">
+                        <kbd>⌘</kbd><kbd>K</kbd>
+                    </span>
+                </span>
+            </button>
+
+            <div id="sidebar-search-panel"
+                 class="sb-panel hidden"
+                 role="listbox"
+                 aria-label="{{ __('Available pages') }}">
+
+                <div class="sb-panel-header">
+                    <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
+                    </svg>
+                    <input type="text"
+                           id="sidebar-search-input"
+                           autocomplete="off"
+                           placeholder="{{ __('Type to filter…') }}"
+                           class="sb-panel-input">
+                    <kbd class="sb-panel-kbd">ESC</kbd>
+                </div>
+
+                <div class="sb-panel-body" id="sidebar-search-results"></div>
+
+                <div class="sb-panel-footer">
+                    <span><kbd class="sb-mini-kbd">↑</kbd><kbd class="sb-mini-kbd">↓</kbd> {{ __('navigate') }}</span>
+                    <span><kbd class="sb-mini-kbd">↵</kbd> {{ __('open') }}</span>
+                </div>
+            </div>
+        </div>
 
         {{-- Nav --}}
         <nav class="flex-1">
@@ -94,7 +136,7 @@
                 <li>
                     <a href="{{ route('home') }}"
                        title="{{ __('Dashboard') }}"
-                       class="group flex items-center gap-3 px-2.5 py-2 rounded-lg transition-colors
+                       class="sb-nav-item group flex items-center gap-3 px-2.5 py-2 rounded-lg transition-colors
                               {{ $isDashboardActive
                                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
                                     : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}">
@@ -109,7 +151,7 @@
                 <li>
                     <a href="/employees"
                        title="{{ __('Employee Management') }}"
-                       class="group flex items-center gap-3 px-2.5 py-2 rounded-lg transition-colors
+                       class="sb-nav-item group flex items-center gap-3 px-2.5 py-2 rounded-lg transition-colors
                               {{ $isEmployeeActive
                                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
                                     : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}">
@@ -127,7 +169,7 @@
                                 data-collapse-toggle="dropdown-admin"
                                 aria-controls="dropdown-admin"
                                 title="{{ __('Administration') }}"
-                                class="group flex items-center justify-between gap-2 w-full
+                                class="sb-nav-item group flex items-center justify-between gap-2 w-full
                                        px-2.5 py-2 rounded-lg transition-colors
                                        {{ $isAdminActive
                                              ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white'
@@ -148,7 +190,7 @@
                         </button>
 
                         <ul id="dropdown-admin"
-                            class="{{ $isAdminActive ? '' : 'hidden' }} mt-1 space-y-0.5
+                            class="{{ $isAdminActive ? '' : 'hidden' }} sidebar-dropdown mt-1 space-y-0.5
                                    pl-4 border-l border-gray-200 dark:border-gray-700 ml-4">
                             @foreach (array_filter([
                                 Route::has('users.index')       ? 'users.index'       : null => __('Users'),
@@ -181,7 +223,7 @@
                             data-collapse-toggle="dropdown-system"
                             aria-controls="dropdown-system"
                             title="{{ __('System') }}"
-                            class="group flex items-center justify-between gap-2 w-full
+                            class="sb-nav-item group flex items-center justify-between gap-2 w-full
                                    px-2.5 py-2 rounded-lg transition-colors
                                    {{ $isSystemActive
                                          ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white'
@@ -202,15 +244,9 @@
                     </button>
 
                     <ul id="dropdown-system"
-                        class="{{ $isSystemActive ? '' : 'hidden' }} mt-1 space-y-0.5
+                        class="{{ $isSystemActive ? '' : 'hidden' }} sidebar-dropdown mt-1 space-y-0.5
                                pl-4 border-l border-gray-200 dark:border-gray-700 ml-4">
-                        @foreach ([
-                            'countries.index'   => __('Country'),
-                            'states.index'      => __('State'),
-                            'cities.index'      => __('City'),
-                            'departments.index' => __('Department'),
-                            'branches.index'    => __('Branch'),
-                        ] as $routeName => $label)
+                        @foreach ($routeIndexes as $routeName => $label)
                             @continue(! Route::has($routeName))
                             @php $active = request()->routeIs($routeName); @endphp
                             <li>
@@ -233,7 +269,7 @@
                     <button type="button"
                             id="open-theme-drawer"
                             title="{{ __('Theme Options') }}"
-                            class="group flex items-center gap-3 w-full px-2.5 py-2 rounded-lg
+                            class="sb-nav-item group flex items-center gap-3 w-full px-2.5 py-2 rounded-lg
                                    transition-colors
                                    {{ $isThemeActive
                                          ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
@@ -251,7 +287,7 @@
         {{-- Footer --}}
         <div class="pt-3 mt-3 border-t border-gray-200 dark:border-gray-800">
             @auth
-                <div class="flex items-center gap-2 px-1">
+                <div class="sb-user flex items-center gap-2 px-1">
                     <span class="flex-shrink-0 w-8 h-8 rounded-full
                                  bg-gradient-to-br from-blue-500 to-indigo-600
                                  text-white text-xs font-semibold
@@ -272,7 +308,7 @@
             <button type="button"
                     id="sidebar-collapse-toggle"
                     aria-label="{{ __('Collapse sidebar') }}"
-                    class="hidden lg:flex items-center gap-2 w-full mt-2 px-2.5 py-2
+                    class="sb-collapse-btn hidden lg:flex items-center gap-2 w-full mt-2 px-2.5 py-2
                            text-xs font-medium rounded-lg
                            text-gray-500 hover:text-gray-900 hover:bg-gray-100
                            dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800
@@ -289,7 +325,7 @@
 </aside>
 
 {{-- ========================================================= --}}
-{{-- ⌘K COMMAND PALETTE                                          --}}
+{{-- ⌘K COMMAND PALETTE (legacy modal)                           --}}
 {{-- ========================================================= --}}
 <div id="command-palette"
      class="fixed inset-0 z-[60] hidden"
@@ -460,72 +496,182 @@
 {{-- Palette items passed to JS --}}
 <script>
     window.SIDEBAR_PALETTE_ITEMS = [
-        { label: @json(__('Dashboard')),  url: @json(route('home')) },
-        { label: @json(__('Employees')),  url: @json('/employees') },
-        @if (Route::has('users.index'))       { label: @json(__('Users')),        url: @json(route('users.index')) }, @endif
-        @if (Route::has('roles.index'))       { label: @json(__('Roles')),        url: @json(route('roles.index')) }, @endif
-        @if (Route::has('permissions.index')) { label: @json(__('Permissions')),  url: @json(route('permissions.index')) }, @endif
-        @if (Route::has('countries.index'))   { label: @json(__('Countries')),    url: @json(route('countries.index')) }, @endif
-        @if (Route::has('states.index'))      { label: @json(__('States')),       url: @json(route('states.index')) }, @endif
-        @if (Route::has('cities.index'))      { label: @json(__('Cities')),       url: @json(route('cities.index')) }, @endif
-        @if (Route::has('departments.index')) { label: @json(__('Departments')),  url: @json(route('departments.index')) }, @endif
-        @if (Route::has('branches.index'))    { label: @json(__('Branches')),     url: @json(route('branches.index')) }, @endif
-        @if (Route::has('social.services.index')) { label: @json(__('Social Services')), url: @json(route('social.services.index')) }, @endif
+        { label: @json(__('Dashboard')),  url: @json(route('home')),           icon: 'home',     group: @json(__('Main')) },
+        { label: @json(__('Employees')),  url: @json('/employees'),            icon: 'users',    group: @json(__('Main')) },
+
+        @if (Route::has('users.index'))
+            { label: @json(__('Users')),        url: @json(route('users.index')),        icon: 'user-plus',  group: @json(__('Administration')) },
+        @endif
+        @if (Route::has('roles.index'))
+            { label: @json(__('Roles')),        url: @json(route('roles.index')),        icon: 'shield',     group: @json(__('Administration')) },
+        @endif
+        @if (Route::has('permissions.index'))
+            { label: @json(__('Permissions')),  url: @json(route('permissions.index')),  icon: 'key',        group: @json(__('Administration')) },
+        @endif
+        @if (Route::has('social.services.index'))
+            { label: @json(__('Social Services')), url: @json(route('social.services.index')), icon: 'heart', group: @json(__('Administration')) },
+        @endif
+
+        @if (Route::has('countries.index'))
+            { label: @json(__('Countries')),    url: @json(route('countries.index')),    icon: 'globe',      group: @json(__('System')) },
+        @endif
+        @if (Route::has('states.index'))
+            { label: @json(__('States')),       url: @json(route('states.index')),       icon: 'map',        group: @json(__('System')) },
+        @endif
+        @if (Route::has('cities.index'))
+            { label: @json(__('Cities')),       url: @json(route('cities.index')),       icon: 'building',   group: @json(__('System')) },
+        @endif
+        @if (Route::has('departments.index'))
+            { label: @json(__('Departments')),  url: @json(route('departments.index')),  icon: 'briefcase',  group: @json(__('System')) },
+        @endif
+        @if (Route::has('branches.index'))
+            { label: @json(__('Branches')),     url: @json(route('branches.index')),     icon: 'git-branch', group: @json(__('System')) },
+        @endif
+
+        { label: @json(__('Theme Options')), url: '#theme',   icon: 'palette', group: @json(__('Tools')), action: 'theme-drawer' },
+        { label: @json(__('My Profile')),    url: @json(Route::has('users.profile') ? route('users.profile') : '#'), icon: 'user', group: @json(__('Tools')) },
+        { label: @json(__('Settings')),      url: '#settings', icon: 'cog', group: @json(__('Tools')), action: 'settings' },
     ];
 
-
     /* =========================================================
-       SIDEBAR — collapse + accordion + command palette + theme drawer
+       SIDEBAR JS — collapse + accordion + inline search + theme
        ========================================================= */
     (function () {
         'use strict';
 
+        const ICONS = {
+            home:        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 10.5L12 3l9 7.5M5 9.5V21h14V9.5"/>',
+            users:       '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M13 7a4 4 0 11-8 0 4 4 0 018 0zM23 20v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>',
+            'user-plus': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M13 7a4 4 0 11-8 0 4 4 0 018 0zM19 8v6M22 11h-6"/>',
+            shield:      '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+            key:         '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>',
+            heart:       '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>',
+            globe:       '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>',
+            map:         '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M1 6l7-3 8 3 7-3v15l-7 3-8-3-7 3V6zM8 3v15M16 6v15"/>',
+            building:    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 21h18M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/>',
+            briefcase:   '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>',
+            'git-branch':'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 3v12M18 9a3 3 0 100-6 3 3 0 000 6zM6 21a3 3 0 100-6 3 3 0 000 6zM18 9a9 9 0 01-9 9"/>',
+            palette:     '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>',
+            user:        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/>',
+            cog:         '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001.08 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1.08z"/>',
+            search:      '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>',
+            'arrow-right':'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M13 6l6 6-6 6"/>',
+            'file-text': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>',
+        };
+
+        const svg = (name, cls = 'w-4 h-4') =>
+            `<svg class="${cls}" fill="none" stroke="currentColor" viewBox="0 0 24 24">${ICONS[name] || ICONS['file-text']}</svg>`;
+
+        function escapeHtml(str) {
+            return String(str ?? '').replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;',
+                '"': '&quot;', "'": '&#39;'
+            }[m]));
+        }
+        const escapeAttr = escapeHtml;
+
         function boot() {
-            const body      = document.body;
-            const sidebar   = document.getElementById('sidebar');
+            const body    = document.body;
+            const sidebar = document.getElementById('sidebar');
             if (!sidebar) return;
 
             const toggle      = document.getElementById('sidebar-collapse-toggle');
             const backdrop    = document.getElementById('sidebar-backdrop');
             const STORAGE_KEY = 'sb.sidebar.collapsed';
 
-            /* 1. Sidebar collapse */
+            /* =========================================================
+            1. SIDEBAR COLLAPSE — bulletproof
+            ========================================================= */
+            // console.log('[sidebar] collapse init. stored=', localStorage.getItem(STORAGE_KEY));
+
+            const applyCollapsed = (collapsed, skipAnim = false) => {
+                if (skipAnim) body.classList.add('no-anim');
+
+                // Use BOTH class on body AND a data-attribute — belt and braces.
+                // Some Tailwind preflight resets or third-party CSS may strip classes.
+                body.classList.toggle('sidebar-collapsed', collapsed);
+                body.setAttribute('data-sidebar-collapsed', collapsed ? 'true' : 'false');
+
+                if (skipAnim) {
+                    void body.offsetWidth;
+                    requestAnimationFrame(() => requestAnimationFrame(() =>
+                        body.classList.remove('no-anim')));
+                }
+
+                // Auto-close accordion dropdowns when collapsing.
+                if (collapsed) {
+                    document.querySelectorAll('.sidebar-dropdown').forEach(ul => ul.classList.add('hidden'));
+                    document.querySelectorAll('[data-collapse-toggle]').forEach(btn =>
+                        btn.setAttribute('aria-expanded', 'false'));
+                }
+
+                // console.log('[sidebar] applied collapsed =', collapsed);
+            };
+
+            // Restore on load
             if (localStorage.getItem(STORAGE_KEY) === 'true') {
-                body.classList.add('no-anim', 'sidebar-collapsed');
-                requestAnimationFrame(() => requestAnimationFrame(() =>
-                    body.classList.remove('no-anim')));
+                applyCollapsed(true, true);
             }
 
+            // Toggle button
+            toggle?.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const collapsed = !body.classList.contains('sidebar-collapsed');
+                applyCollapsed(collapsed);
+                localStorage.setItem(STORAGE_KEY, String(collapsed));
+                window.dispatchEvent(new Event('resize'));
+                // console.log('[sidebar] toggle clicked, collapsed =', collapsed);
+            });
+
+            // Fallback: if `toggle` is null, warn loudly
+            if (!toggle) {
+                // console.warn('[sidebar] #sidebar-collapse-toggle NOT FOUND. Collapse will not work.');
+            }
             toggle?.addEventListener('click', () => {
-                const collapsed = body.classList.toggle('sidebar-collapsed');
+                const collapsed = !body.classList.contains('sidebar-collapsed');
+                applyCollapsed(collapsed);
                 localStorage.setItem(STORAGE_KEY, collapsed ? 'true' : 'false');
                 window.dispatchEvent(new Event('resize'));
             });
 
-            document.addEventListener('keydown', (e) => {
-                const tag = (e.target.tagName || '').toLowerCase();
-                if (['input', 'textarea', 'select'].includes(tag)) return;
-                if (e.key === '[' || e.key === '\\') {
-                    e.preventDefault();
-                    toggle?.click();
-                }
-            });
-
-            /* Mobile drawer */
-            document.querySelectorAll('[data-drawer-toggle="sidebar"]').forEach(el => {
-                el.addEventListener('click', () => {
-                    const open = sidebar.classList.toggle('-translate-x-0');
-                    sidebar.classList.toggle('-translate-x-full', !open);
-                    backdrop?.classList.toggle('hidden', !open);
-                });
-            });
-            backdrop?.addEventListener('click', () => {
+            /* =========================================================
+               2. MOBILE DRAWER
+               ========================================================= */
+            const openDrawer = () => {
+                sidebar.classList.remove('-translate-x-full');
+                sidebar.classList.add('-translate-x-0');
+                backdrop?.classList.remove('hidden');
+            };
+            const closeDrawer = () => {
                 sidebar.classList.add('-translate-x-full');
                 sidebar.classList.remove('-translate-x-0');
-                backdrop.classList.add('hidden');
-            });
+                backdrop?.classList.add('hidden');
+            };
+            const isDrawerOpen = () => sidebar.classList.contains('-translate-x-0');
 
-            /* 2. Accordion toggles */
+            // NOTE: The sidebar script already binds the drawer toggle.
+            // Do NOT re-bind here — that causes a double-toggle bug.
+            // We only expose a fallback if the sidebar script failed to load.
+
+            if (!window.SidebarDrawer) {
+                document.querySelectorAll('[data-drawer-toggle="sidebar"]').forEach(el => {
+                    el.addEventListener('click', () => isDrawerOpen() ? closeDrawer() : openDrawer());
+                });
+                backdrop?.addEventListener('click', closeDrawer);
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && isDrawerOpen()) closeDrawer();
+                });
+                window.addEventListener('resize', () => {
+                    if (window.innerWidth >= 1024) closeDrawer();
+                });
+            }
+
+            window.SidebarDrawer = { open: openDrawer, close: closeDrawer, isOpen: isDrawerOpen };
+
+            /* =========================================================
+               3. ACCORDION TOGGLES
+               ========================================================= */
             document.querySelectorAll('[data-collapse-toggle]').forEach(btn => {
                 const target = document.getElementById(btn.getAttribute('data-collapse-toggle'));
                 if (!target) return;
@@ -536,49 +682,225 @@
                 });
             });
 
-            /* 3. Command palette */
-            const palette = document.getElementById('command-palette');
-            const input   = document.getElementById('command-input');
-            const results = document.getElementById('command-results');
-            const opener  = document.getElementById('open-command-palette');
+            /* =========================================================
+               4. INLINE SEARCH
+               ========================================================= */
+            (function initInlineSearch() {
+                const wrap    = document.getElementById('sidebar-search-wrap');
+                const trigger = document.getElementById('sidebar-search-trigger');
+                const panel   = document.getElementById('sidebar-search-panel');
+                const input   = document.getElementById('sidebar-search-input');
+                const results = document.getElementById('sidebar-search-results');
 
-            if (palette && input && results) {
+                if (!trigger || !panel || !input || !results) return;
+
+                const items = window.SIDEBAR_PALETTE_ITEMS || [];
+                let activeIndex = -1;
+                let flatList    = [];
+
+                const render = (query = '') => {
+                    const q = query.trim().toLowerCase();
+                    const filtered = q
+                        ? items.filter(i => i.label.toLowerCase().includes(q))
+                        : items.slice();
+
+                    flatList = filtered;
+                    activeIndex = filtered.length ? 0 : -1;
+
+                    if (!filtered.length) {
+                        results.innerHTML = `
+                            <div class="sb-empty">
+                                ${svg('search', 'w-5 h-5')}
+                                <p>No results for "<span class="font-medium">${escapeHtml(query)}</span>"</p>
+                                <p class="text-[11px] opacity-70 mt-1">Try a different keyword.</p>
+                            </div>`;
+                        return;
+                    }
+
+                    const grouped = {};
+                    filtered.forEach(item => {
+                        const g = item.group || 'Other';
+                        (grouped[g] = grouped[g] || []).push(item);
+                    });
+
+                    let html = '';
+                    let idx  = 0;
+
+                    Object.keys(grouped).forEach(groupName => {
+                        html += `<div class="sb-group-label">${escapeHtml(groupName)}</div>`;
+                        grouped[groupName].forEach(item => {
+                            const isActive = idx === activeIndex ? 'is-active' : '';
+                            html += `
+                                <a href="${escapeAttr(item.url || '#')}"
+                                   class="sb-item ${isActive}"
+                                   data-index="${idx}"
+                                   data-url="${escapeAttr(item.url || '#')}"
+                                   data-action="${escapeAttr(item.action || '')}">
+                                    <span class="sb-item-icon">${svg(item.icon || 'file-text', 'w-4 h-4')}</span>
+                                    <span class="sb-item-label">${escapeHtml(item.label)}</span>
+                                    <span class="sb-item-arrow">${svg('arrow-right', 'w-3.5 h-3.5')}</span>
+                                </a>`;
+                            idx++;
+                        });
+                    });
+
+                    results.innerHTML = html;
+
+                    results.querySelectorAll('.sb-item').forEach(el => {
+                        el.addEventListener('mouseenter', () => {
+                            activeIndex = parseInt(el.dataset.index, 10);
+                            highlight();
+                        });
+                        el.addEventListener('click', e => {
+                            const action = el.dataset.action;
+                            const url    = el.dataset.url;
+                            if (action) {
+                                e.preventDefault();
+                                handleAction(action);
+                                closePanel();
+                            } else if (!url || url === '#') {
+                                e.preventDefault();
+                            }
+                        });
+                    });
+
+                    scrollActiveIntoView();
+                };
+
+                const highlight = () => {
+                    results.querySelectorAll('.sb-item').forEach(el => {
+                        el.classList.toggle('is-active',
+                            parseInt(el.dataset.index, 10) === activeIndex);
+                    });
+                    scrollActiveIntoView();
+                };
+
+                const scrollActiveIntoView = () => {
+                    const active = results.querySelector('.sb-item.is-active');
+                    active?.scrollIntoView({ block: 'nearest' });
+                };
+
+                const handleAction = (action) => {
+                    if (action === 'theme-drawer') {
+                        document.getElementById('open-theme-drawer')?.click();
+                    }
+                };
+
+                const openPanel = () => {
+                    if (body.classList.contains('sidebar-collapsed')) return;
+                    panel.classList.remove('hidden');
+                    trigger.setAttribute('aria-expanded', 'true');
+                    render(input.value);
+                    requestAnimationFrame(() => input.focus());
+                    document.dispatchEvent(new CustomEvent('sidebar:opened'));
+                };
+
+                const closePanel = () => {
+                    panel.classList.add('hidden');
+                    trigger.setAttribute('aria-expanded', 'false');
+                    input.value = '';
+                    activeIndex = -1;
+                    document.dispatchEvent(new CustomEvent('sidebar:closed'));
+                };
+
+                const isOpen = () => !panel.classList.contains('hidden');
+
+                trigger.addEventListener('click', e => {
+                    e.stopPropagation();
+                    isOpen() ? closePanel() : openPanel();
+                });
+
+                input.addEventListener('input', e => render(e.target.value));
+
+                input.addEventListener('keydown', e => {
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        if (!flatList.length) return;
+                        activeIndex = (activeIndex + 1) % flatList.length;
+                        highlight();
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (!flatList.length) return;
+                        activeIndex = (activeIndex - 1 + flatList.length) % flatList.length;
+                        highlight();
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (activeIndex < 0) return;
+                        const item = flatList[activeIndex];
+                        if (item.action) { handleAction(item.action); closePanel(); }
+                        else if (item.url && item.url !== '#') window.location.href = item.url;
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        closePanel();
+                        trigger.focus();
+                    } else if (e.key === 'Tab') {
+                        closePanel();
+                    }
+                });
+
+                document.addEventListener('click', e => {
+                    if (!isOpen()) return;
+                    if (!wrap.contains(e.target)) closePanel();
+                });
+
+                // Auto-close when the sidebar collapses
+                const observer = new MutationObserver(() => {
+                    if (body.classList.contains('sidebar-collapsed') && isOpen()) closePanel();
+                });
+                observer.observe(body, { attributes: true, attributeFilter: ['class'] });
+
+                // DO NOT bind ⌘K here — the topbar owns the shortcut.
+                window.SidebarSearch = { open: openPanel, close: closePanel, isOpen, render };
+            })();
+
+            /* =========================================================
+               5. LEGACY MODAL PALETTE (kept for compatibility)
+               ========================================================= */
+            const palette    = document.getElementById('command-palette');
+            const palInput   = document.getElementById('command-input');
+            const palResults = document.getElementById('command-results');
+            const palOpener  = document.getElementById('open-command-palette');
+
+            if (palette && palInput && palResults && palOpener) {
                 const items = window.SIDEBAR_PALETTE_ITEMS || [];
 
-                const render = (filter = '') => {
+                const renderPalette = (filter = '') => {
                     const q = filter.toLowerCase();
                     const list = items.filter(i => i.label.toLowerCase().includes(q));
-                    results.innerHTML = list.length
+                    palResults.innerHTML = list.length
                         ? list.map(i => `
                             <li>
-                                <a href="${i.url}" class="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-200
-                                                          hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                    <span class="w-1 h-1 rounded-full bg-current opacity-50"></span>${i.label}
+                                <a href="${escapeAttr(i.url || '#')}"
+                                   class="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-200
+                                          hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    ${svg(i.icon || 'file-text', 'w-4 h-4 opacity-60')}
+                                    <span>${escapeHtml(i.label)}</span>
                                 </a>
                             </li>`).join('')
                         : `<li class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">No matches</li>`;
                 };
 
-                const openPalette  = () => { palette.classList.remove('hidden'); render(); input.value = ''; input.focus(); };
-                const closePalette = () => { palette.classList.add('hidden'); };
+                const openPalette  = () => {
+                    palette.classList.remove('hidden');
+                    renderPalette();
+                    palInput.value = '';
+                    palInput.focus();
+                };
+                const closePalette = () => palette.classList.add('hidden');
 
-                opener?.addEventListener('click', openPalette);
-                input.addEventListener('input', e => render(e.target.value));
+                palOpener.addEventListener('click', openPalette);
+                palInput.addEventListener('input', e => renderPalette(e.target.value));
                 palette.querySelectorAll('[data-palette-close]').forEach(el =>
                     el.addEventListener('click', closePalette));
 
-                document.addEventListener('keydown', (e) => {
-                    const isMac = navigator.platform.toLowerCase().includes('mac');
-                    const cmdK  = (isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === 'k';
-                    if (cmdK) {
-                        e.preventDefault();
-                        palette.classList.contains('hidden') ? openPalette() : closePalette();
-                    }
+                document.addEventListener('keydown', e => {
                     if (e.key === 'Escape' && !palette.classList.contains('hidden')) closePalette();
                 });
             }
 
-            /* 4. Theme drawer */
+            /* =========================================================
+               6. THEME DRAWER
+               ========================================================= */
             const drawer  = document.getElementById('theme-drawer');
             const panel   = document.getElementById('theme-panel');
             const opener2 = document.getElementById('open-theme-drawer');
@@ -595,28 +917,31 @@
                     try { return { ...defaults, ...JSON.parse(localStorage.getItem(TKEY) || '{}') }; }
                     catch (_) { return { ...defaults }; }
                 };
-                const writeState = (state) => {
-                    try { localStorage.setItem(TKEY, JSON.stringify(state)); } catch (_) {}
+                const writeState = (s) => {
+                    try { localStorage.setItem(TKEY, JSON.stringify(s)); } catch (_) {}
                 };
 
-                const applyState = (state) => {
-                    document.documentElement.classList.toggle('dark', state.mode === 'dark');
+                const applyState = (s) => {
+                    document.documentElement.classList.toggle('dark', s.mode === 'dark');
 
-                    body.dataset.accent  = state.accent;
-                    body.dataset.density = state.density;
-                    body.dataset.layout  = state.layout;
-                    body.dataset.sidebar = state.sidebar;
+                    body.dataset.accent  = s.accent;
+                    body.dataset.density = s.density;
+                    body.dataset.layout  = s.layout;
+                    body.dataset.sidebar = s.sidebar;
 
                     document.querySelectorAll('.theme-mode-btn').forEach(b =>
-                        b.classList.toggle('is-active', b.dataset.themeMode === state.mode));
+                        b.classList.toggle('is-active', b.dataset.themeMode === s.mode));
                     document.querySelectorAll('.theme-color-btn').forEach(b =>
-                        b.classList.toggle('is-active', b.dataset.themeColor === state.accent));
+                        b.classList.toggle('is-active', b.dataset.themeColor === s.accent));
                     document.querySelectorAll('.theme-density-btn').forEach(b =>
-                        b.classList.toggle('is-active', b.dataset.themeDensity === state.density));
+                        b.classList.toggle('is-active', b.dataset.themeDensity === s.density));
                     document.querySelectorAll('.theme-layout-btn').forEach(b =>
-                        b.classList.toggle('is-active', b.dataset.themeLayout === state.layout));
+                        b.classList.toggle('is-active', b.dataset.themeLayout === s.layout));
                     document.querySelectorAll('.theme-sidebar-btn').forEach(b =>
-                        b.classList.toggle('is-active', b.dataset.themeSidebar === state.sidebar));
+                        b.classList.toggle('is-active', b.dataset.themeSidebar === s.sidebar));
+
+                    // Broadcast so the topbar can sync its dark-mode icon.
+                    document.dispatchEvent(new CustomEvent('theme:state', { detail: s }));
                 };
 
                 let state = readState();
@@ -668,6 +993,15 @@
                     writeState(state);
                     applyState(state);
                 });
+
+                // React to topbar's theme toggle
+                document.addEventListener('theme:changed', (e) => {
+                    const nextMode = e.detail?.mode;
+                    if (!nextMode || state.mode === nextMode) return;
+                    state.mode = nextMode;
+                    writeState(state);
+                    applyState(state);
+                });
             }
         }
 
@@ -678,3 +1012,262 @@
         }
     })();
 </script>
+
+<style>
+    /* =========================================================
+       SEARCH BOX
+       ========================================================= */
+    .sb-search2 {
+        position: relative;
+        display: block;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        text-align: left;
+        border-radius: 0.75rem;
+        outline: none;
+    }
+
+    .sb-search2-ring {
+        position: absolute;
+        inset: -1px;
+        border-radius: 0.85rem;
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #3b82f6 100%);
+        background-size: 300% 300%;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        animation: sb-search2-gradient 6s ease infinite;
+        z-index: 0;
+    }
+
+    .sb-search2:hover .sb-search2-ring,
+    .sb-search2:focus-visible .sb-search2-ring {
+        opacity: 1;
+    }
+
+    @keyframes sb-search2-gradient {
+        0%   { background-position: 0% 50%; }
+        50%  { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    .sb-search2-inner {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        padding: 0.5rem 0.6rem;
+        border-radius: 0.75rem;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+    .dark .sb-search2-inner { background: #111827; border-color: #1f2937; }
+    .sb-search2:hover .sb-search2-inner { border-color: transparent; }
+    .dark .sb-search2:hover .sb-search2-inner { background: #111827; }
+
+    .sb-search2-icon {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 0.5rem;
+        background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+        color: #4f46e5;
+        transition: transform 0.2s ease, background 0.2s ease;
+    }
+    .dark .sb-search2-icon {
+        background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%);
+        color: #a5b4fc;
+    }
+    .sb-search2:hover .sb-search2-icon { transform: scale(1.05); }
+
+    .sb-search2-text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.1; }
+    .sb-search2-label { font-size: 0.8125rem; font-weight: 500; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dark .sb-search2-label { color: #9ca3af; }
+    .sb-search2-hint { font-size: 0.6875rem; color: #9ca3af; }
+    .dark .sb-search2-hint { color: #6b7280; }
+
+    .sb-search2-kbd { flex-shrink: 0; display: inline-flex; align-items: center; gap: 1px; }
+    .sb-search2-kbd kbd {
+        display: inline-flex; align-items: center; justify-content: center;
+        min-width: 1.25rem; height: 1.25rem; padding: 0 0.25rem;
+        font-size: 0.6875rem; font-weight: 600; font-family: inherit;
+        color: #6b7280; background: #f3f4f6; border: 1px solid #e5e7eb;
+        border-bottom-width: 2px; border-radius: 0.375rem;
+    }
+    .dark .sb-search2-kbd kbd { color: #9ca3af; background: #1f2937; border-color: #374151; }
+
+    /* =========================================================
+        SIDEBAR COLLAPSED — data-attribute mirror
+        (works even if something strips the class from body)
+    ========================================================= */
+    body[data-sidebar-collapsed="true"] #sidebar { width: 4.5rem !important; }
+
+    body[data-sidebar-collapsed="true"] .sidebar-label,
+    body[data-sidebar-collapsed="true"] .sidebar-label-wrap,
+    body[data-sidebar-collapsed="true"] .sidebar-dropdown {
+        display: none !important;
+    }
+
+    body[data-sidebar-collapsed="true"] .sb-search2-text,
+    body[data-sidebar-collapsed="true"] .sb-search2-kbd { display: none !important; }
+
+    body[data-sidebar-collapsed="true"] .sb-search2-inner {
+        justify-content: center !important;
+        padding: 0.5rem !important;
+    }
+
+    body[data-sidebar-collapsed="true"] .sb-brand {
+        justify-content: center !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+
+    body[data-sidebar-collapsed="true"] .sb-nav-item,
+    body[data-sidebar-collapsed="true"] button.sb-nav-item {
+        justify-content: center !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+        gap: 0 !important;
+    }
+
+    body[data-sidebar-collapsed="true"] .sb-user {
+        justify-content: center !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    body[data-sidebar-collapsed="true"] .sb-collapse-btn {
+        justify-content: center !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+        gap: 0 !important;
+    }
+
+    body[data-sidebar-collapsed="true"] #sidebar-collapse-icon {
+        transform: rotate(180deg) !important;
+    }
+
+    /* =========================================================
+       THEME ACTIVE STATES
+       ========================================================= */
+    .theme-mode-btn.is-active,
+    .theme-density-btn.is-active,
+    .theme-layout-btn.is-active,
+    .theme-sidebar-btn.is-active {
+        border-color: #3b82f6;
+        background-color: #eff6ff;
+        color: #1d4ed8;
+    }
+    .dark .theme-mode-btn.is-active,
+    .dark .theme-density-btn.is-active,
+    .dark .theme-layout-btn.is-active,
+    .dark .theme-sidebar-btn.is-active {
+        border-color: #3b82f6;
+        background-color: rgba(59, 130, 246, 0.1);
+        color: #93c5fd;
+    }
+    .theme-color-btn.is-active {
+        box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #3b82f6;
+        transform: scale(1.1);
+    }
+
+    /* =========================================================
+       ACCENT TOKENS
+       ========================================================= */
+    body[data-accent="blue"]   { --accent: #3b82f6; }
+    body[data-accent="indigo"] { --accent: #6366f1; }
+    body[data-accent="violet"] { --accent: #8b5cf6; }
+    body[data-accent="pink"]   { --accent: #ec4899; }
+    body[data-accent="rose"]   { --accent: #f43f5e; }
+    body[data-accent="amber"]  { --accent: #f59e0b; }
+    body[data-accent="emerald"]{ --accent: #10b981; }
+    body[data-accent="teal"]   { --accent: #14b8a6; }
+    body[data-accent="cyan"]   { --accent: #06b6d4; }
+    body[data-accent="slate"]  { --accent: #64748b; }
+
+    /* =========================================================
+       DENSITY
+       ========================================================= */
+    body[data-density="compact"] nav a,
+    body[data-density="compact"] nav button { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+    body[data-density="spacious"] nav a,
+    body[data-density="spacious"] nav button { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+
+    /* =========================================================
+       GRADIENT SIDEBAR STYLE
+       ========================================================= */
+    body[data-sidebar="gradient"] #sidebar {
+        background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+    }
+    .dark body[data-sidebar="gradient"] #sidebar,
+    body[data-sidebar="gradient"].dark #sidebar {
+        background: linear-gradient(180deg, #111827 0%, #0b1220 100%);
+    }
+
+    /* =========================================================
+       NO-ANIM
+       ========================================================= */
+    .no-anim, .no-anim * { transition: none !important; animation: none !important; }
+
+    /* =========================================================
+       INLINE SEARCH PANEL
+       ========================================================= */
+    .sb-panel {
+        position: absolute;
+        top: calc(100% + 0.5rem);
+        left: 0;
+        right: 0;
+        z-index: 50;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 30px -5px rgba(0,0,0,0.15);
+        overflow: hidden;
+    }
+    .dark .sb-panel { background: #111827; border-color: #1f2937; }
+    .sb-panel-header { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-bottom: 1px solid #e5e7eb; }
+    .dark .sb-panel-header { border-color: #1f2937; }
+    .sb-panel-input { flex: 1; border: 0; background: transparent; font-size: 0.8125rem; color: #111827; outline: none; }
+    .dark .sb-panel-input { color: #f9fafb; }
+    .sb-panel-kbd, .sb-mini-kbd {
+        font-size: 0.625rem; font-weight: 600; padding: 1px 5px; border-radius: 4px;
+        background: #f3f4f6; border: 1px solid #e5e7eb; color: #6b7280;
+    }
+    .dark .sb-panel-kbd, .dark .sb-mini-kbd { background: #1f2937; border-color: #374151; color: #9ca3af; }
+    .sb-panel-body { max-height: 20rem; overflow-y: auto; padding: 0.25rem; }
+    .sb-group-label {
+        padding: 0.375rem 0.5rem 0.125rem;
+        font-size: 0.625rem; font-weight: 600;
+        text-transform: uppercase; letter-spacing: 0.05em;
+        color: #9ca3af;
+    }
+    .sb-item {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.4rem 0.5rem; border-radius: 0.5rem;
+        font-size: 0.8125rem; color: #374151;
+        text-decoration: none; transition: background 0.12s;
+    }
+    .dark .sb-item { color: #d1d5db; }
+    .sb-item:hover, .sb-item.is-active { background: #eff6ff; color: #1d4ed8; }
+    .dark .sb-item:hover, .dark .sb-item.is-active { background: rgba(59,130,246,0.12); color: #93c5fd; }
+    .sb-item-icon { display: inline-flex; color: #6b7280; flex-shrink: 0; }
+    .sb-item.is-active .sb-item-icon { color: #3b82f6; }
+    .sb-item-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sb-item-arrow { opacity: 0; transform: translateX(-2px); transition: all 0.15s; }
+    .sb-item.is-active .sb-item-arrow { opacity: 1; transform: translateX(0); }
+    .sb-panel-footer {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 0.4rem 0.75rem; border-top: 1px solid #e5e7eb;
+        font-size: 0.6875rem; color: #9ca3af;
+    }
+    .dark .sb-panel-footer { border-color: #1f2937; }
+    .sb-empty { display: flex; flex-direction: column; align-items: center; padding: 1.5rem 1rem; text-align: center; color: #9ca3af; font-size: 0.8125rem; }
+</style>

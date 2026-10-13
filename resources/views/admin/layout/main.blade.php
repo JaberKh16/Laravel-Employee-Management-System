@@ -60,7 +60,7 @@
                         flex flex-col sm:flex-row items-center justify-between gap-2
                         text-xs text-gray-500 dark:text-gray-400">
                 <span>
-                    &copy; {{ date('Y') }} {{ config('app.name', 'Employee Management System') }}.
+                    &copy; {{ date('Y') }} {{ config('app.name', 'Office Management System') }}.
                     {{ __('All rights reserved.') }}
                 </span>
                 <span class="flex items-center gap-1.5">
@@ -103,6 +103,14 @@
    
     @include('admin.partials.js.scroll-top')
     @include('components.sweet-alert')
+
+    @php
+        // dd(Auth::user()->unreadNotifications()->count(), Auth::user()->unreadNotifications()->get(), Auth::user()->unreadNotifications()->pluck('data')->toArray(), Auth::user()->unreadNotifications()->pluck('data')->map(fn($n) => $n['title'] ?? null)->toArray());
+
+        // dd(Auth::user());
+        // CheckAuthUserIfno::logUserInfo();
+        
+    @endphp
 
 
 

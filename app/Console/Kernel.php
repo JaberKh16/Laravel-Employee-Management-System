@@ -41,6 +41,16 @@ class Kernel extends ConsoleKernel
         $schedule->command('logs:prune --days=30')
             ->dailyAt('03:00')
             ->withoutOverlapping();
+
+        // Clean up expired and old soft-deleted notifications (03:00)
+        Schedule::command('notifications:cleanup')
+            ->daily()
+            ->at('03:00')
+            ->name('notifications:cleanup')
+            ->description('Clean up expired and old soft-deleted notifications')
+            ->withoutOverlapping()
+            ->onOneServer()
+            ->runInBackground();
     }
 
 

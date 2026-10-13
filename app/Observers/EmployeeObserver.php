@@ -3,14 +3,13 @@
 namespace App\Observers;
 
 use App\Models\Employee;
+use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Log;
 
 class EmployeeObserver
 {
-    /**
-     * Resolve the acting user once, null-safe.
-     * Works in HTTP requests, console commands, queues, and seeders.
-     */
+   
     protected function actor(): array
     {
         $user = auth()->user();
@@ -21,9 +20,6 @@ class EmployeeObserver
         ];
     }
 
-    /**
-     * Common context shared by all events.
-     */
     protected function context(Employee $employee, array $extra = []): array
     {
         return array_merge([
@@ -47,6 +43,23 @@ class EmployeeObserver
     public function created(Employee $employee): void
     {
         $employee->logActivity('created');
+        $admins = User::role('admin')->pluck('id')->all();
+        NotificationService::toUsers(
+            userIds: $admins,
+            type: 'employee.created',
+            title: 'New employee added',
+            message: "{$employee->name} joined {$employee->department->name}.",
+            options: [
+                'category' => 'success',
+                'icon' => 'user-plus',
+                'action_url' => route('employees.show', $employee),
+                'action_label' => 'View employee',
+                'related_type' => Employee::class,
+                'related_id' => $employee->id,
+            ]
+        );
+
+
     }
 
 

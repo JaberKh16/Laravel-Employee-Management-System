@@ -27,7 +27,7 @@ class SocialAuthController extends Controller
         // Optional: pass extra scopes from DB
         $driver = Socialite::driver($service->provider);
 
-        if (! empty($service->scopes)) {
+        if (!empty($service->scopes)) {
             $driver->scopes($service->scopes);
         }
 
@@ -137,7 +137,7 @@ class SocialAuthController extends Controller
         SocialUser $social
     ): User {
         // Ensure we always have something unique for email + username
-        $email    = $social->getEmail() ?: "{$service->provider}_{$social->getId()}@social.local";
+        $email = $social->getEmail() ?: "{$service->provider}_{$social->getId()}@social.local";
         $username = $this->uniqueUsername(
             $social->getNickname()
             ?: Str::before($email, '@')
@@ -145,18 +145,18 @@ class SocialAuthController extends Controller
         );
 
         $user = User::create([
-            'username'          => $username,
-            'email'             => $email,
-            'password'          => null,                  // social-only
+            'username' => $username,
+            'email' => $email,
+            'password' => null,                  // social-only
             'email_verified_at' => now(),                 // provider already verified
-            'last_login_at'     => now(),
+            'last_login_at' => now(),
         ]);
 
         // Profile row
         $profile = $user->profile()->create([
             'first_name' => $this->firstChunk($social->getName()),
-            'last_name'  => $this->lastChunk($social->getName()),
-            'avatar'     => $social->getAvatar(),         // will be stored as-is (external URL supported)
+            'last_name' => $this->lastChunk($social->getName()),
+            'avatar' => $social->getAvatar(),         // will be stored as-is (external URL supported)
         ]);
 
         $user->forceFill(['profile_id' => $profile->id])->save();
@@ -171,16 +171,16 @@ class SocialAuthController extends Controller
     ): SocialAccount {
         return SocialAccount::updateOrCreate(
             [
-                'user_id'          => $user->id,
-                'provider'         => $service->provider,
+                'user_id' => $user->id,
+                'provider' => $service->provider,
             ],
             array_merge(
                 [
                     'provider_user_id' => $social->getId(),
-                    'provider_email'   => $social->getEmail(),
-                    'nickname'         => $social->getNickname(),
-                    'name'             => $social->getName(),
-                    'avatar'           => $social->getAvatar(),
+                    'provider_email' => $social->getEmail(),
+                    'nickname' => $social->getNickname(),
+                    'name' => $social->getName(),
+                    'avatar' => $social->getAvatar(),
                 ],
                 $this->tokenPayload($social)
             )
@@ -190,12 +190,12 @@ class SocialAuthController extends Controller
     protected function tokenPayload(SocialUser $social): array
     {
         return [
-            'access_token'     => $social->token ?? null,
-            'refresh_token'    => $social->refreshToken ?? null,
+            'access_token' => $social->token ?? null,
+            'refresh_token' => $social->refreshToken ?? null,
             'token_expires_at' => isset($social->expiresIn)
                 ? now()->addSeconds((int) $social->expiresIn)
                 : null,
-            'raw'              => method_exists($social, 'getRaw') ? $social->getRaw() : null,
+            'raw' => method_exists($social, 'getRaw') ? $social->getRaw() : null,
         ];
     }
 
@@ -228,14 +228,16 @@ class SocialAuthController extends Controller
 
     protected function firstChunk(?string $full): ?string
     {
-        if (! $full) return null;
+        if (!$full)
+            return null;
         $parts = preg_split('/\s+/', trim($full));
         return $parts[0] ?? null;
     }
 
     protected function lastChunk(?string $full): ?string
     {
-        if (! $full) return null;
+        if (!$full)
+            return null;
         $parts = preg_split('/\s+/', trim($full));
         return count($parts) > 1 ? end($parts) : null;
     }
