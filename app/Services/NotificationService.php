@@ -4,10 +4,32 @@ namespace App\Services;
 
 use App\Models\Notification;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
 class NotificationService
 {
+    public function storeNotification(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'type' => 'required|string|max:255',
+            'title' => 'required|string|max:255',
+            'message' => 'nullable|string',
+            'category' => 'nullable|string|max:255',
+            'icon' => 'nullable|string|max:255',
+            'action_url' => 'nullable|url|max:2048',
+            'action_label' => 'nullable|string|max:255',
+            'priority' => 'nullable|in:low,normal,high',
+            'data' => 'nullable|array',
+            'expires_at' => 'nullable|date',
+        ]);
+
+        $notification = Notification::create($validated);
+        return response()->json($notification, 201);
+    }
+
     /**
      * Send a notification to a single user.
      */
@@ -59,8 +81,16 @@ class NotificationService
         ?string $message = null,
         array $options = []
     ): Collection {
-        $users = User::role($roleName)->get();
-        return self::toUsers($users->pluck('id')->all(), $type, $title, $message, $options);
+        // ✅ use query() to invoke the scope
+        $users = User::query()->role($roleName)->get();
+
+        return self::toUsers(
+            $users->pluck('id')->all(),
+            $type,
+            $title,
+            $message,
+            $options
+        );
     }
 
     /**
@@ -72,7 +102,14 @@ class NotificationService
         ?string $message = null,
         array $options = []
     ): Collection {
-        return self::toUsers(User::pluck('id')->all(), $type, $title, $message, $options);
+        // ✅ explicitly query
+        return self::toUsers(
+            User::query()->pluck('id')->all(),
+            $type,
+            $title,
+            $message,
+            $options
+        );
     }
 
     /**

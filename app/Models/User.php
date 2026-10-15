@@ -46,6 +46,13 @@ class User extends Authenticatable
         'last_login_at' => 'datetime',
     ];
 
+    protected array $handlers = [
+        User::class => [
+            'created' => 'userCreated',
+            'updated' => 'userUpdated',
+            'deleted' => 'userDeleted',
+        ],
+    ];
 
 
     public function parent()

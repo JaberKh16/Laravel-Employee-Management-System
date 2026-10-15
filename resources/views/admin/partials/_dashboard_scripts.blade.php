@@ -24,3 +24,5 @@
 
 {{-- DataTables JS kept (no-op, safe to leave) --}}
 <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+
+{{-- Tom Select2 JS --}}

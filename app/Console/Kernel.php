@@ -51,6 +51,14 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping()
             ->onOneServer()
             ->runInBackground();
+
+        // daily prune of soft-deleted records (optional)
+        $schedule->command('model:prune')
+            ->dailyAt('03:30')
+            ->name('daily-model-prune')
+            ->withoutOverlapping()
+            ->onOneServer()
+            ->runInBackground();
     }
 
 

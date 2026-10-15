@@ -6,6 +6,7 @@ use App\Models\City;
 use App\Models\Country;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\Notification;
 use App\Models\RegisteredSocialService;
 use App\Models\State;
 use App\Models\User;
@@ -15,6 +16,7 @@ use App\Observers\DepartmentObserver;
 use App\Observers\EmployeeObserver;
 use App\Observers\StateObserver;
 use App\Observers\UserObserver;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Blade;
@@ -58,5 +60,28 @@ class AppServiceProvider extends ServiceProvider
         Blade::directive('selected', function ($expression) {
             return "<?php echo ($expression) ? 'selected' : ''; ?>";
         });
+
+        // daily cleanup of expired notifications
+        // $this->app->booted(function () {
+        //     $schedule = $this->app->make(Schedule::class);
+        //     $schedule->call(function () {
+        //         Notification::whereNotNull('expires_at')
+        //             ->where('expires_at', '<', now())
+        //             ->delete();
+        //     })->daily();
+        // });
+
+        // // dialy prune of soft-deleted records (optional)
+        // $this->app->booted(function () {
+        //     $schedule = $this->app->make(Schedule::class);
+        //     $schedule->call(function () {
+        //         City::onlyTrashed()->where('deleted_at', '<', now()->subDays(30))->forceDelete();
+        //         Country::onlyTrashed()->where('deleted_at', '<', now()->subDays(30))->forceDelete();
+        //         State::onlyTrashed()->where('deleted_at', '<', now()->subDays(30))->forceDelete();
+        //         Department::onlyTrashed()->where('deleted_at', '<', now()->subDays(30))->forceDelete();
+        //         Employee::onlyTrashed()->where('deleted_at', '<', now()->subDays(30))->forceDelete();
+        //         User::onlyTrashed()->where('deleted_at', '<', now()->subDays(30))->forceDelete();
+        //     })->daily();
+        // });
     }
 }

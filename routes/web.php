@@ -51,7 +51,7 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::resource('departments', DepartmentController::class);
 
     /* ---------- ADMINISTRATION section — admin/manager only ---------- */
-    Route::middleware(['role:admin|super-admin|manager'])->group(function () {
+    Route::middleware(['role:Admin|super-admin|manager'])->group(function () {
 
         // Users + profile
         Route::get('users/export', [UserController::class, 'export'])->name('users.export');
@@ -60,6 +60,14 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         Route::get('users/{user}/profile/modal', [ProfileController::class, 'showProfile'])->name('users.profile.modal.show');
         Route::put('users/{user}/profile/modal', [ProfileController::class, 'updateProfile'])->name('users.profile.modal.update');
         Route::resource('users', UserController::class);
+
+        // Live validation — same controller, trait-supplied actions
+        Route::prefix('api/validate')->name('validate.')->group(function () {
+            Route::post('username', [UserController::class, 'checkUsername'])->name('username');
+            Route::post('email', [UserController::class, 'checkEmail'])->name('email');
+            Route::post('phone', [UserController::class, 'checkPhone'])->name('phone');
+            Route::post('password', [UserController::class, 'checkPassword'])->name('password');
+        });
 
         // Own profile
         Route::get('profile/index', [UserController::class, 'profile'])->name('users.profile');

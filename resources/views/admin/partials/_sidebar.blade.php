@@ -305,7 +305,7 @@
                 </div>
             @endauth
 
-            <button type="button"
+            {{-- <button type="button"
                     id="sidebar-collapse-toggle"
                     aria-label="{{ __('Collapse sidebar') }}"
                     class="sb-collapse-btn hidden lg:flex items-center gap-2 w-full mt-2 px-2.5 py-2
@@ -319,6 +319,31 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                 </svg>
                 <span class="sidebar-label">{{ __('Collapse') }}</span>
+            </button> --}}
+
+            <button type="button"
+                    id="sidebar-collapse-toggle"
+                    aria-label="{{ __('Collapse sidebar') }}"
+                    class="group sb-collapse-btn hidden lg:flex items-center gap-2 w-full mt-2 px-2.5 py-2
+                        text-xs font-medium rounded-lg
+                        text-gray-500 hover:text-gray-900 hover:bg-gray-100
+                        dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800
+                        transition-all duration-300 ease-in-out
+                        hover:shadow-sm
+                        active:scale-[0.98]
+                        focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-1
+                        dark:focus-visible:ring-offset-gray-900
+                        cursor-pointer select-none">
+                <svg id="sidebar-collapse-icon"
+                    class="flex-shrink-0 w-4 h-4 transition-transform duration-300 ease-in-out
+                            group-hover:-translate-x-0.5"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span class="sidebar-label transition-all duration-300 ease-in-out
+                            group-hover:tracking-wide">
+                    {{ __('Collapse') }}
+                </span>
             </button>
         </div>
     </div>

@@ -4,17 +4,22 @@ namespace App\Http\Controllers\Backend;
 
 use App\Exports\UsersExport;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\NotificationController;
 use App\Http\Enums\ActiveStatus;
 use App\Http\Enums\EmployeeStatus;
+use App\Http\Helpers\Notifications\CustomPushNotification;
 use App\Http\Helpers\Templates\UserTemplates;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Http\Requests\UserStoreRequest;
 use App\Http\Requests\UserUpdateRequest;
+use App\Http\Traits\ValidateRequestInput;
 use App\Models\City;
 use App\Models\Country;
 use App\Models\Employee;
+use App\Models\Notification;
 use App\Models\State;
 use App\Models\User;
+use App\Services\NotificationService;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
 use Illuminate\Filesystem\FilesystemManager;
 use Illuminate\Http\Request;
@@ -28,6 +33,7 @@ use Throwable;
 
 class UserController extends Controller
 {
+    use ValidateRequestInput;
     /**
      * Shared template helper — resolved once per controller instance.
      */
@@ -42,6 +48,8 @@ class UserController extends Controller
     {
         $this->templates = new UserTemplates();
         $this->filesystem = app(FilesystemManager::class);
+        // $this->notificationService = new NotificationService();
+
 
         // $this->middleware('permission:user-list|user-create|user-edit|user-delete', ['only' => ['index','store']]);
         // $this->middleware('permission:user-create', ['only' => ['create','store']]);
@@ -136,7 +144,7 @@ class UserController extends Controller
     }
 
 
-    public function store(UserStoreRequest $request)
+    public function store(UserStoreRequest $request, CustomPushNotification $notifications)
     {
         try {
             DB::beginTransaction();
@@ -162,9 +170,15 @@ class UserController extends Controller
                 $user->syncRoles($roles);
             }
 
-            DB::commit();
+            // add ehr ethe helper
+            // Send the user-created notification
+            // $notifications->send('user.created', $user, [
+            //     'roles' => $roles,
+            // ]);
+            $notifications->send('created', $user);
 
-            notify()->success('User Created Successfully!!!', 'Success', 'topRight');
+
+            DB::commit();
 
             return redirect()
                 ->route('users.index')

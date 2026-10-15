@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employee;
 use App\Models\Notification;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -39,6 +41,14 @@ class NotificationController extends Controller
         ]);
     }
 
+    public function show(Notification $notification): JsonResponse
+    {
+        abort_unless($notification->user_id === auth()->id(), 403);
+        return response()->json($notification);
+    }
+
+
+
     public function unreadCount(): JsonResponse
     {
         return response()->json([
@@ -73,6 +83,87 @@ class NotificationController extends Controller
     {
         abort_unless($notification->user_id === auth()->id(), 403);
         $notification->delete(); // soft delete (audit trail preserved)
+        return response()->json(['ok' => true]);
+    }
+
+    public function notifySystemMaintaince(): JsonResponse
+    {
+        NotificationService::toEveryone(
+            type: 'system-maintenance',
+            title: 'System Maintenance Scheduled',
+            message: 'The system will be down for maintenance on Saturday from 2 AM to 4 AM. Please save your work.',
+            options: [
+                'category' => 'system',
+                'expires_at' => now()->addHours(6),
+            ]
+        );
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function notifyNewEmployee(int $employeeId): JsonResponse
+    {
+        $employee = Employee::findOrFail($employeeId);
+
+        NotificationService::toRole(
+            roleName: 'manager',
+            type: 'new-employee',
+            title: 'New Employee Added',
+            message: "A new employee, {$employee->first_name} {$employee->last_name}, has been added to the system.",
+            options: [
+                'category' => 'employee',
+                'action_url' => route('employees.show', ['employee' => $employee->id]),
+                'action_label' => 'View Employee',
+            ]
+        );
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function notifyCustomMessage(int $userId, string $message): JsonResponse
+    {
+        NotificationService::toUser(
+            userId: $userId,
+            type: 'custom-message',
+            title: 'You have a new message',
+            message: $message,
+            options: [
+                'category' => 'message',
+                'priority' => 'high',
+            ]
+        );
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function notifyBulkUsers(array $userIds, string $message): JsonResponse
+    {
+        NotificationService::toUsers(
+            userIds: $userIds,
+            type: 'bulk-notification',
+            title: 'Important Update',
+            message: $message,
+            options: [
+                'category' => 'update',
+                'priority' => 'normal',
+            ]
+        );
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function notifyAnnouncement(string $announcement): JsonResponse
+    {
+        NotificationService::toEveryone(
+            type: 'announcement',
+            title: 'New Announcement',
+            message: $announcement,
+            options: [
+                'category' => 'announcement',
+                'priority' => 'high',
+            ]
+        );
+
         return response()->json(['ok' => true]);
     }
 }
