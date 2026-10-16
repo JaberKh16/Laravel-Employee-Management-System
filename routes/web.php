@@ -54,10 +54,24 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::middleware(['role:Admin|super-admin|manager'])->group(function () {
 
         // Users + profile
+        // Import
+        Route::get('users/import', [UserController::class, 'importForm'])->name('users.import');
+        Route::post('users/import', [UserController::class, 'importStore'])->name('users.import.store');
+        Route::get('users/import/template', [UserController::class, 'importTemplate'])->name('users.import.template');
+        // Export
         Route::get('users/export', [UserController::class, 'export'])->name('users.export');
+
+        // Bulk actions — MUST come BEFORE resource
+        Route::patch('users/bulk-status', [UserController::class, 'bulkStatus'])->name('users.bulk-status');
+        Route::patch('users/bulk-role', [UserController::class, 'bulkRole'])->name('users.bulk-role');
+        Route::patch('users/bulk-operation', [UserController::class, 'bulkOperation'])->name('users.bulk-operation');
+
+        Route::patch('users/{user}/status', [UserController::class, 'updateStatus'])->name('users.update-status');
         Route::post('users/{user}/make-employee', [UserController::class, 'makeEmployee'])->name('users.make-employee');
+
+        // Profile modal (specific enough — has /modal suffix)
         Route::get('users/{user}/profile', [UserController::class, 'profileShow'])->name('users.profile.show');
-        Route::get('users/{user}/profile/modal', [ProfileController::class, 'showProfile'])->name('users.profile.modal.show');
+
         Route::put('users/{user}/profile/modal', [ProfileController::class, 'updateProfile'])->name('users.profile.modal.update');
         Route::resource('users', UserController::class);
 

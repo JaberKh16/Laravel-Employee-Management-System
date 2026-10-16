@@ -2,6 +2,7 @@
 
 namespace App\Http\Helpers\Templates;
 
+use App\Http\Enums\ActiveStatus;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +39,10 @@ class UserTemplates
                             ->orWhere('last_name', 'like', "%{$name}%");
                     });
             });
+        }
+        // ── Criteria: Role ──────────────────────────────────────────
+        if ($role = $request->input('role')) {
+            $query->whereHas('roles', fn($q) => $q->where('name', $role));
         }
 
         // ── Criteria: Email ────────────────────────────────────────
@@ -85,6 +90,7 @@ class UserTemplates
             'role' => 'Role',
             'updated_at' => 'Last Modified',
             'actions' => 'Actions',
+            // 'operations' => 'Bulk',
         ];
     }
 
@@ -208,5 +214,34 @@ class UserTemplates
         } catch (Throwable $e) {
             return null;
         }
+    }
+
+    public function getStatus()
+    {
+        // Build a status meta map keyed by enum value.
+        $statusOptions = collect(ActiveStatus::cases())->mapWithKeys(function (ActiveStatus $status) {
+            return [
+                $status->value => [
+                    'value' => $status->value,
+                    'name' => $status->name,   // Active / Inactive / Pending / Banned
+                    'label' => $status->label(),
+                    'classes' => match ($status) {
+                        ActiveStatus::Active => 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300',
+                        ActiveStatus::Inactive => 'border-gray-200 bg-gray-100 text-gray-600 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-300',
+                        ActiveStatus::Pending => 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300',
+                        ActiveStatus::Confirmed => 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/60 dark:text-green-300',
+                        ActiveStatus::Banned => 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/60 dark:text-red-300',
+                    },
+                    'dot' => match ($status) {
+                        ActiveStatus::Active => 'bg-emerald-500',
+                        ActiveStatus::Inactive => 'bg-gray-400',
+                        ActiveStatus::Pending => 'bg-amber-500',
+                        ActiveStatus::Confirmed => 'bg-green-500',
+                        ActiveStatus::Banned => 'bg-red-500',
+                    },
+                ],
+            ];
+        })->all();
+        return $statusOptions;
     }
 }
