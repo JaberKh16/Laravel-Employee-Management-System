@@ -164,7 +164,7 @@ class UserTemplates
     public function actionButtons(User $user): array
     {
         // Build routes safely — if any route name is missing, we skip it
-        $viewProfileRoute = $this->safeRoute('users.profile.show', $user->id);
+        $viewProfileRoute = $this->safeRoute('users.profile.modal.show', $user->id);
         $makeEmployeeRoute = $this->safeRoute('users.make-employee', $user->id);
         $editRoute = $this->safeRoute('users.edit', $user->id);
         $deleteRoute = $this->safeRoute('users.destroy', $user->id);

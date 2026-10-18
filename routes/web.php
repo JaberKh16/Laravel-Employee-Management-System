@@ -6,12 +6,12 @@ use App\Http\Controllers\Backend\CityController;
 use App\Http\Controllers\Backend\CountryController;
 use App\Http\Controllers\Backend\DepartmentController;
 use App\Http\Controllers\Backend\PermissionController;
+use App\Http\Controllers\Backend\ProfileController;
 use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Backend\StateController;
 use App\Http\Controllers\Backend\UserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -67,12 +67,24 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         Route::patch('users/bulk-operation', [UserController::class, 'bulkOperation'])->name('users.bulk-operation');
 
         Route::patch('users/{user}/status', [UserController::class, 'updateStatus'])->name('users.update-status');
-        Route::post('users/{user}/make-employee', [UserController::class, 'makeEmployee'])->name('users.make-employee');
+
+        Route::get('users/{user}/make-employee/data', [UserController::class, 'makeEmployeeData'])
+            ->name('users.make-employee.data');
+
+        Route::post('users/{user}/make-employee', [UserController::class, 'makeEmployee'])
+            ->name('users.make-employee');
 
         // Profile modal (specific enough — has /modal suffix)
-        Route::get('users/{user}/profile', [UserController::class, 'profileShow'])->name('users.profile.show');
+        // Route::get('users/{user}/profile', [UserController::class, 'openProfileModal'])->name('users.profile.show');
+        // Route::put('users/{user}/profile/modal', [ProfileController::class, 'updateModalProfile'])->name('users.profile.modal.update');
+        // ═══════════════════════════════════════════════════════════
+        // PROFILE MODAL ROUTES
+        // ═══════════════════════════════════════════════════════════
+        Route::get('users/{user}/profile/modal', [ProfileController::class, 'showProfile'])
+            ->name('users.profile.modal.show');
 
-        Route::put('users/{user}/profile/modal', [ProfileController::class, 'updateProfile'])->name('users.profile.modal.update');
+        Route::put('users/{user}/profile/modal', [ProfileController::class, 'updateModalProfile'])
+            ->name('users.profile.modal.update');
         Route::resource('users', UserController::class);
 
         // Live validation — same controller, trait-supplied actions

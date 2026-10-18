@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Backend;
 
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use App\Http\Controllers\Controller;
 
 class ProfileController extends Controller
 {
@@ -21,10 +22,12 @@ class ProfileController extends Controller
             'profile.state',
             'profile.country',
             'employee.department',
+            'employee.jobProfile',
             'parent.profile',
         ]);
 
         return response()->json([
+            'd' => $user,
             'data' => $this->transformProfile($user),
         ]);
     }
@@ -33,7 +36,7 @@ class ProfileController extends Controller
     // UPDATE PROFILE (from modal edit mode)
     // PUT /admin/users/{user}/profile/modal
     // ═══════════════════════════════════════════════════════════
-    public function updateProfile(Request $request, User $user): JsonResponse
+    public function updateModalProfile(Request $request, User $user): JsonResponse
     {
         $validated = $request->validate([
             // ── User-level ─────────────────────────────────
@@ -89,6 +92,11 @@ class ProfileController extends Controller
                 'city_id',
             ])->toArray();
 
+            // Normalize empty strings → null
+            $profileData = array_map(function ($v) {
+                return $v === '' ? null : $v;
+            }, $profileData);
+
             if ($user->profile) {
                 $user->profile->update($profileData);
             } else {
@@ -126,9 +134,7 @@ class ProfileController extends Controller
             'initials' => $p?->initials ?? strtoupper(substr($user->username ?? 'U', 0, 2)),
 
             // ── Status (enum-safe) ─────────────────────────
-            'status' => is_object($user->status)
-                ? strtolower($user->status->label())
-                : strtolower((string) ($user->status ?? 'unknown')),
+            'status' => $this->resolveStatus($user),
 
             // ── Timestamps ─────────────────────────────────
             'created_at_human' => $user->created_at?->format('M d, Y · H:i'),
@@ -153,20 +159,23 @@ class ProfileController extends Controller
                 'country_id' => $p->country_id,
                 'state_id' => $p->state_id,
                 'city_id' => $p->city_id,
-                'city' => ['name' => $p->city?->name],
-                'state' => ['name' => $p->state?->name],
-                'country' => ['name' => $p->country?->name],
+                'city' => $p->city ? ['name' => $p->city->name] : null,
+                'state' => $p->state ? ['name' => $p->state->name] : null,
+                'country' => $p->country ? ['name' => $p->country->name] : null,
             ] : null,
 
             // ── Employee ───────────────────────────────────
             'employee' => $user->employee ? [
-                'employee_id' => $user->employee->employee_id,
-                'designation' => $user->employee->designation,
-                'hire_date' => optional($user->employee->hire_date)->format('M d, Y'),
-                'status' => is_object($user->employee->status)
-                    ? ($user->employee->status->label() ?? $user->employee->status->value)
-                    : $user->employee->status,
-                'department' => ['name' => $user->employee->department?->name],
+                'employee_id' => $user->employee->employee_id ?? null,
+                'designation' => $user->employee->designation ?? null,
+                'hire_date' => $user->employee->hire_date
+                    ? $user->employee->hire_date->format('M d, Y')
+                    : null,
+                'status' => $this->resolveEmployeeStatus($user->employee),
+                'emp_status' => $this->resolveEmployeeStatus($user->employee),
+                'department' => $user->employee->department
+                    ? ['name' => $user->employee->department->name]
+                    : null,
             ] : null,
 
             // ── Parent ─────────────────────────────────────
@@ -174,5 +183,39 @@ class ProfileController extends Controller
                 'full_name' => $user->parent->profile?->full_name ?? $user->parent->username,
             ] : null,
         ];
+    }
+
+    /**
+     * Resolve user status to a lowercase label string.
+     */
+    protected function resolveStatus(User $user): string
+    {
+        $status = $user->status;
+
+        if (is_object($status) && method_exists($status, 'label')) {
+            return strtolower($status->label());
+        }
+        if (is_object($status) && isset($status->value)) {
+            return strtolower((string) $status->value);
+        }
+        return strtolower((string) ($status ?? 'unknown'));
+    }
+
+    /**
+     * Resolve employee status to a string label.
+     */
+    protected function resolveEmployeeStatus($employee): ?string
+    {
+        if (!$employee || !isset($employee->status))
+            return null;
+        $status = $employee->status;
+
+        if (is_object($status) && method_exists($status, 'label')) {
+            return $status->label();
+        }
+        if (is_object($status) && isset($status->value)) {
+            return (string) $status->value;
+        }
+        return (string) $status;
     }
 }

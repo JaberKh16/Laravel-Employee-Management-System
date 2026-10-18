@@ -1,4 +1,3 @@
-
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     'use strict';
@@ -57,6 +56,20 @@ document.addEventListener('DOMContentLoaded', function () {
     const makeEmployeeForm  = document.getElementById('makeEmployeeForm');
     const makeEmployeeName  = document.getElementById('makeEmployeeName');
 
+    // ── Make Employee form fields ──
+    const meName       = document.getElementById('me_name');
+    const meDob        = document.getElementById('me_dob');
+    const meAge        = document.getElementById('me_age');
+    const meGender     = document.getElementById('me_gender');
+    const meZip        = document.getElementById('me_zip');
+    const meDepartment = document.getElementById('me_department');
+    const meBranch     = document.getElementById('me_branch');
+    const meCountry    = document.getElementById('me_country');
+    const meState      = document.getElementById('me_state');
+    const meCity       = document.getElementById('me_city');
+    const meAddress    = document.getElementById('me_address');
+    const meError      = document.getElementById('meError');
+
     const filterPanel   = document.getElementById('filterPanel');
     const toggleBtn     = document.getElementById('toggleFilterBtn');
     const closeBtn      = document.getElementById('closeFilterBtn');
@@ -112,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /* ════════════════════════════════════════════════════════════
-       DROPDOWNS  ⬅ FIX: menu no longer stops propagation
+       DROPDOWNS
        ════════════════════════════════════════════════════════════ */
     function closeAllDropdowns(except = null) {
         document.querySelectorAll('[data-dropdown]').forEach(dropdown => {
@@ -143,10 +156,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 trigger.setAttribute('aria-expanded', String(opening));
                 chevron?.classList.toggle('rotate-180', opening);
             });
-
-            // ⬅ FIX: Removed `menu.addEventListener('click', e => e.stopPropagation())`
-            //         so clicks inside the menu bubble to the document-level
-            //         delegated handler that routes bulk actions.
         });
     }
 
@@ -251,8 +260,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (opening) errorElement?.classList.add('hidden');
             });
 
-            // Stop clicks inside status menu from bubbling to document
-            // (so delegated bulk handlers don't fire on status option clicks)
             menu.addEventListener('click', e => e.stopPropagation());
 
             menu.querySelectorAll('[data-status-option]').forEach(option => {
@@ -525,8 +532,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (radio) {
                 radio.checked = true;
                 radio.dispatchEvent(new Event('change', { bubbles: true }));
-            } else {
-                console.warn('[ops] Unknown operation:', operation);
             }
         }
 
@@ -661,7 +666,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /* ════════════════════════════════════════════════════════════
-       PROFILE MODAL
+       PROFILE MODAL DATA
        ════════════════════════════════════════════════════════════ */
     let usersData = {};
     if (usersDataElement) {
@@ -669,69 +674,199 @@ document.addEventListener('DOMContentLoaded', function () {
         catch (e) { console.error('Could not parse usersData JSON:', e); }
     }
 
-    function setText(id, value) {
-        const el = document.getElementById(id);
-        if (el) el.textContent = value ?? '—';
+   /* ════════════════════════════════════════════════════════════
+   MAKE EMPLOYEE — helpers
+   ════════════════════════════════════════════════════════════ */
+    function computeAge() {
+        if (!meDob || !meAge) return;
+        const dob = meDob.value;
+        if (!dob) { meAge.value = ''; return; }
+
+        const birth = new Date(dob);
+        if (isNaN(birth.getTime())) { meAge.value = ''; return; }
+
+        const today = new Date();
+        let age = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+        meAge.value = age >= 0 ? age : '';
     }
 
-    window.openProfile = function (id) {
-        const user = usersData[id];
-        if (!user || !profileModal) return;
+    function normalizeGender(value) {
+        if (!value) return '';
+        const v = String(value).trim().toLowerCase();
+        // Common backend representations → option value
+        const map = {
+            'm': 'male', 'male': 'male', 'man': 'male',
+            'f': 'female', 'female': 'female', 'woman': 'female',
+            'o': 'other', 'other': 'other', 'non-binary': 'other', 'nonbinary': 'other',
+        };
+        return map[v] || '';
+    }
 
-        document.getElementById('profileLoading')?.classList.remove('hidden');
-        document.getElementById('profileContent')?.classList.add('hidden');
-        profileModal.classList.remove('hidden');
-        profileModal.classList.add('flex');
-        document.body.style.overflow = 'hidden';
+    function setSelectValue(selectEl, value) {
+        if (!selectEl) return;
+        if (value === null || value === undefined) { selectEl.value = ''; return; }
+        // Ensure the option exists; if not, add it so the value can be set.
+        const str = String(value);
+        let opt = Array.from(selectEl.options).find(o => String(o.value) === str);
+        if (!opt) {
+            opt = new Option(str, str, true, true);
+            selectEl.add(opt);
+        }
+        selectEl.value = str;
+    }
 
-        window.setTimeout(() => {
-            const username = user.username || 'User';
-            setText('profileAvatar', username.substring(0, 2).toUpperCase());
-            setText('profileName', [user.first_name, user.last_name].filter(Boolean).join(' ') || username);
-            setText('profileUsername', '@' + username);
-            setText('profileEmail', user.email || '—');
-            setText('profilePhone', user.phone || '—');
-            setText('profileAddress', user.address || '—');
+    function loadMeStates(countryId, selectedStateId) {
+        if (!meState) return Promise.resolve();
+        meState.innerHTML = '<option value="">Select state…</option>';
+        if (meCity) meCity.innerHTML = '<option value="">Select city…</option>';
+        if (!countryId) return Promise.resolve();
 
-            const employeeSection = document.getElementById('employeeSection');
-            if (user.employee) {
-                employeeSection?.classList.remove('hidden');
-                setText('profileDepartment', user.employee.department || '—');
-                setText('profileHireDate',   user.employee.hire_date   || '—');
-                setText('profileBirthdate',  user.birthdate            || '—');
-                setText('profileEmpStatus', user.employee.status
-                    ? user.employee.status.charAt(0).toUpperCase() + user.employee.status.slice(1)
-                    : '—');
-            } else {
-                employeeSection?.classList.add('hidden');
-            }
+        return fetch('/api/states?country_id=' + encodeURIComponent(countryId), {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.ok ? r.json() : [])
+        .then(data => {
+            (data || []).forEach(s => {
+                meState.add(new Option(s.name, s.id, false, String(s.id) === String(selectedStateId)));
+            });
+        })
+        .catch(e => console.warn('[makeEmployee] loadStates:', e));
+    }
 
-            const editLink = document.getElementById('profileEditLink');
-            if (editLink && user.edit_url) editLink.href = user.edit_url;
+    function loadMeCities(stateId, selectedCityId) {
+        if (!meCity) return Promise.resolve();
+        meCity.innerHTML = '<option value="">Select city…</option>';
+        if (!stateId) return Promise.resolve();
 
-            document.getElementById('profileLoading')?.classList.add('hidden');
-            document.getElementById('profileContent')?.classList.remove('hidden');
-        }, 250);
-    };
+        return fetch('/api/cities?state_id=' + encodeURIComponent(stateId), {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.ok ? r.json() : [])
+        .then(data => {
+            (data || []).forEach(c => {
+                meCity.add(new Option(c.name, c.id, false, String(c.id) === String(selectedCityId)));
+            });
+        })
+        .catch(e => console.warn('[makeEmployee] loadCities:', e));
+    }
 
-    window.closeProfile = function () {
-        if (!profileModal) return;
-        profileModal.classList.add('hidden');
-        profileModal.classList.remove('flex');
-        document.body.style.overflow = '';
-    };
+    window.makeEmployee = async function (id, username) {
+        if (!makeEmployeeModal || !makeEmployeeForm) {
+            notify('error', 'Make-employee modal not found.');
+            return;
+        }
 
-    /* ════════════════════════════════════════════════════════════
-       MAKE EMPLOYEE MODAL
-       ════════════════════════════════════════════════════════════ */
-    window.makeEmployee = function (id, username) {
-        const user = usersData[id];
-        if (!user || !makeEmployeeModal || !makeEmployeeForm) return;
-        if (makeEmployeeName) makeEmployeeName.textContent = username || user.username || 'User';
-        if (user.make_emp_url) makeEmployeeForm.action = user.make_emp_url;
+        // Reset form + errors + dependent dropdowns
+        makeEmployeeForm.reset();
+        if (meError) { meError.classList.add('hidden'); meError.textContent = ''; }
+        if (meState) meState.innerHTML = '<option value="">Select state…</option>';
+        if (meCity)  meCity.innerHTML  = '<option value="">Select city…</option>';
+        if (meAge)   meAge.value = '';
+        if (makeEmployeeName) makeEmployeeName.textContent = username || 'User';
+
+        // Default action (overwritten once data arrives)
+        makeEmployeeForm.action = '/admin/users/' + encodeURIComponent(id) + '/make-employee';
+
+        // Open modal immediately with a loading state
         makeEmployeeModal.classList.remove('hidden');
         makeEmployeeModal.classList.add('flex');
         document.body.style.overflow = 'hidden';
+
+        const submitBtn = document.getElementById('makeEmployeeSubmit');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.removeAttribute('title');
+        }
+
+        try {
+            const res = await fetch('/admin/users/' + encodeURIComponent(id) + '/make-employee/data', {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            const ct = res.headers.get('content-type') || '';
+            if (ct.indexOf('application/json') === -1) {
+                throw new Error('Server returned non-JSON (HTTP ' + res.status + ')');
+            }
+
+            const json = await res.json();
+            if (!res.ok) throw new Error(json?.message || 'Failed to load user data.');
+
+            const d = json.data || {};
+            const p = d.profile || {};
+
+            // ── NAME ──
+            const resolvedName = d.name || d.username || username || '';
+            if (makeEmployeeName) makeEmployeeName.textContent = resolvedName;
+            if (meName) meName.value = resolvedName;
+
+            // ── DOB / AGE ──
+            if (meDob && p.birthdate) {
+                meDob.value = p.birthdate;
+                computeAge();
+            }
+
+            // ── GENDER ──
+            if (meGender) meGender.value = normalizeGender(p.gender);
+
+            // ── ZIP / ADDRESS ──
+            if (meZip && p.zip_code) meZip.value = p.zip_code;
+            if (meAddress && p.address) meAddress.value = p.address;
+
+            // ── DEPARTMENT / BRANCH (NEW — was missing) ──
+            // Accepts either top-level on profile or on `d` directly.
+            const deptId   = p.department_id   ?? d.department_id   ?? '';
+            const branchId = p.branch_id       ?? d.branch_id       ?? '';
+            setSelectValue(meDepartment, deptId);
+            setSelectValue(meBranch, branchId);
+
+            // ── COUNTRY / STATE / CITY (cascade) ──
+            if (meCountry && p.country_id) meCountry.value = p.country_id;
+
+            if (p.country_id) {
+                await loadMeStates(p.country_id, p.state_id);
+                if (p.state_id) {
+                    // Ensure state is selected after async add
+                    setSelectValue(meState, p.state_id);
+                    await loadMeCities(p.state_id, p.city_id);
+                    setSelectValue(meCity, p.city_id);
+                }
+            }
+
+            // ── FORM ACTION ──
+            if (d.make_emp_url) makeEmployeeForm.action = d.make_emp_url;
+
+            // ── ALREADY AN EMPLOYEE? ──
+            if (d.is_employee) {
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.setAttribute('title', 'This user is already an employee.');
+                }
+                if (meError) {
+                    meError.textContent = (d.username || username) + ' is already an employee.';
+                    meError.classList.remove('hidden');
+                }
+                return;
+            }
+
+            if (submitBtn) submitBtn.disabled = false;
+
+        } catch (err) {
+            console.error('[makeEmployee] load failed:', err);
+            if (meError) {
+                meError.textContent = err.message || 'Failed to load user data.';
+                meError.classList.remove('hidden');
+            }
+            notify('error', err.message || 'Failed to load user data.');
+        }
     };
 
     window.closeMakeEmployee = function () {
@@ -768,21 +903,62 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     /* ════════════════════════════════════════════════════════════
-       FILTER PANEL
+       FILTER PANEL  ← FIXED
        ════════════════════════════════════════════════════════════ */
     function openFilter() {
         if (!filterPanel) return;
         filterPanel.classList.add('is-open');
+        filterPanel.style.maxHeight = filterPanel.scrollHeight + 'px';
         toggleBtn?.setAttribute('aria-expanded', 'true');
         if (filterChevron) filterChevron.style.transform = 'rotate(180deg)';
     }
 
     function closeFilter() {
         if (!filterPanel) return;
+        filterPanel.style.maxHeight = null;
         filterPanel.classList.remove('is-open');
         toggleBtn?.setAttribute('aria-expanded', 'false');
         if (filterChevron) filterChevron.style.transform = 'rotate(0deg)';
     }
+
+    if (toggleBtn && filterPanel && !toggleBtn.dataset.filterBound) {
+        toggleBtn.dataset.filterBound = '1';
+        toggleBtn.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            filterPanel.classList.contains('is-open') ? closeFilter() : openFilter();
+        });
+    }
+
+    if (closeBtn && !closeBtn.dataset.filterBound) {
+        closeBtn.dataset.filterBound = '1';
+        closeBtn.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            closeFilter();
+        });
+    }
+
+    // Open filter on load if query params exist
+    @if (request()->hasAny(['name', 'email', 'date', 'dob', 'status', 'updated_from', 'updated_to']))
+        openFilter();
+    @endif
+
+    /* ════════════════════════════════════════════════════════════
+       CRITERIA RADIO SYNC  ← FIXED
+       ════════════════════════════════════════════════════════════ */
+    function syncCriteriaFields() {
+        const selected = document.querySelector('.criteria-radio:checked')?.value || 'name';
+        document.querySelectorAll('.criteria-field').forEach(field => {
+            field.style.display = field.dataset.criteria === selected ? '' : 'none';
+        });
+    }
+    document.querySelectorAll('.criteria-radio').forEach(r => {
+        if (r.dataset.criteriaBound === '1') return;
+        r.dataset.criteriaBound = '1';
+        r.addEventListener('change', syncCriteriaFields);
+    });
+    syncCriteriaFields();
 
     /* ════════════════════════════════════════════════════════════
        ROLE PICKER
@@ -813,6 +989,47 @@ document.addEventListener('DOMContentLoaded', function () {
             submitBulkRole(result.value, null);
         }
     }
+
+    /* ════════════════════════════════════════════════════════════
+       DOWNLOAD DROPDOWN + DOWNLOAD ITEMS  ← FIXED
+       ════════════════════════════════════════════════════════════ */
+    if (downloadToggle && downloadMenu && !downloadToggle.dataset.dlBound) {
+        downloadToggle.dataset.dlBound = '1';
+        downloadToggle.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            const isHidden = downloadMenu.classList.contains('hidden');
+            downloadMenu.classList.toggle('hidden', !isHidden);
+            downloadToggle.setAttribute('aria-expanded', String(isHidden));
+        });
+    }
+
+    // Download items: don't block navigation; just show loading state
+    document.querySelectorAll('[data-download]').forEach(item => {
+        if (item.dataset.downloadBound === '1') return;
+        item.dataset.downloadBound = '1';
+
+        item.addEventListener('click', function (event) {
+            // If it's an <a href> or <button> with a form/link, let the browser handle it.
+            // Only show a transient spinner; do NOT preventDefault, do NOT block navigation.
+            const spinner = this.querySelector('.spinner-btn');
+            const label   = this.querySelector('.download-label');
+            const original = label?.textContent ?? '';
+
+            spinner?.classList.remove('hidden');
+            if (label) label.textContent = 'Downloading…';
+
+            // Reset UI after a short delay — but navigation may already be in progress
+            window.setTimeout(() => {
+                spinner?.classList.add('hidden');
+                if (label) label.textContent = original;
+            }, 3000);
+
+            // Optionally hide the dropdown
+            downloadMenu?.classList.add('hidden');
+            downloadToggle?.setAttribute('aria-expanded', 'false');
+        });
+    });
 
     /* ════════════════════════════════════════════════════════════
        EVENT BINDING
@@ -850,13 +1067,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     /* ════════════════════════════════════════════════════════════
-       DELEGATED CLICK HANDLERS — bulk operations from header & bulk bar
-       ⬅ FIX: This is the handler that now reliably fires because
-              we removed the menu's stopPropagation above.
+       DELEGATED CLICK HANDLERS
        ════════════════════════════════════════════════════════════ */
     document.addEventListener('click', event => {
 
-        // Clear selection (bulk bar)
         if (event.target.closest('[data-bulk-clear]')) {
             event.preventDefault();
             rowBoxes().forEach(box => { box.checked = false; });
@@ -865,7 +1079,6 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Header: "Change status…"
         if (event.target.closest('[data-open-bulk-status]')) {
             event.preventDefault();
             closeAllDropdowns();
@@ -873,7 +1086,6 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Header: "Change role"
         if (event.target.closest('[data-open-bulk-role]')) {
             event.preventDefault();
             closeAllDropdowns();
@@ -881,7 +1093,6 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Bulk bar: role picker option
         const roleBtn = event.target.closest('[data-bulk-role]');
         if (roleBtn) {
             event.preventDefault();
@@ -889,7 +1100,6 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Header: any bulk operation (Set Active, Make employees, Export, Delete…)
         const opBtn = event.target.closest('[data-bulk-operation]');
         if (opBtn) {
             event.preventDefault();
@@ -916,70 +1126,47 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    document.querySelectorAll('[data-download]').forEach(item => {
-        item.addEventListener('click', function () {
-            const spinner  = this.querySelector('.spinner-btn');
-            const label    = this.querySelector('.download-label');
-            const original = label?.textContent ?? '';
-            spinner?.classList.remove('hidden');
-            if (label) label.textContent = 'Downloading…';
-            if (typeof window.showLoader === 'function') {
-                window.showLoader(this.dataset.loadingText || 'Preparing download…');
-            }
-            window.setTimeout(() => {
-                window.hideLoader?.();
-                spinner?.classList.add('hidden');
-                if (label) label.textContent = original;
-            }, 2500);
-        });
-    });
-
-    toggleBtn?.addEventListener('click', () => {
-        if (!filterPanel) return;
-        filterPanel.classList.contains('is-open') ? closeFilter() : openFilter();
-    });
-    closeBtn?.addEventListener('click', closeFilter);
-
-    @if (request()->hasAny(['name', 'email', 'date', 'dob', 'status', 'updated_from', 'updated_to']))
-        openFilter();
-    @endif
-
-    const radios = document.querySelectorAll('.criteria-radio');
-    const fields = document.querySelectorAll('.criteria-field');
-
-    function syncCriteriaFields() {
-        const selected = document.querySelector('.criteria-radio:checked')?.value || 'name';
-        fields.forEach(field => {
-            field.style.display = field.dataset.criteria === selected ? '' : 'none';
-        });
-    }
-    radios.forEach(r => r.addEventListener('change', syncCriteriaFields));
-    syncCriteriaFields();
-
-    downloadToggle?.addEventListener('click', event => {
-        event.stopPropagation();
-        if (!downloadMenu) return;
-        const isHidden = downloadMenu.classList.contains('hidden');
-        downloadMenu.classList.toggle('hidden', !isHidden);
-        downloadToggle.setAttribute('aria-expanded', String(isHidden));
-    });
-
     profileModal?.addEventListener('click', e => {
-        if (e.target === profileModal) window.closeProfile();
+        if (e.target === profileModal) window.closeProfile?.();
     });
     makeEmployeeModal?.addEventListener('click', e => {
         if (e.target === makeEmployeeModal) window.closeMakeEmployee();
     });
-    makeEmployeeForm?.addEventListener('submit', function () {
-        if (typeof window.setButtonLoading === 'function') window.setButtonLoading('makeEmployeeSubmit', true);
-        if (typeof window.showLoader === 'function') window.showLoader('Creating employee record…');
-    });
 
     /* ════════════════════════════════════════════════════════════
-       GLOBAL: click-outside closes dropdowns  ⬅ FIX: skip clicks inside menus
+       MAKE EMPLOYEE — cascading + auto-age + submit loading
+       ════════════════════════════════════════════════════════════ */
+    if (meDob && !meDob.dataset.ageBound) {
+        meDob.dataset.ageBound = '1';
+        meDob.addEventListener('change', computeAge);
+    }
+
+    if (meCountry && !meCountry.dataset.cascadeBound) {
+        meCountry.dataset.cascadeBound = '1';
+        meCountry.addEventListener('change', e => {
+            loadMeStates(e.target.value);
+        });
+    }
+
+    if (meState && !meState.dataset.cascadeBound) {
+        meState.dataset.cascadeBound = '1';
+        meState.addEventListener('change', e => {
+            loadMeCities(e.target.value);
+        });
+    }
+
+    if (makeEmployeeForm && !makeEmployeeForm.dataset.submitBound) {
+        makeEmployeeForm.dataset.submitBound = '1';
+        makeEmployeeForm.addEventListener('submit', function () {
+            if (typeof window.setButtonLoading === 'function') window.setButtonLoading('makeEmployeeSubmit', true);
+            if (typeof window.showLoader === 'function') window.showLoader('Creating employee record…');
+        });
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       GLOBAL: click-outside closes dropdowns
        ════════════════════════════════════════════════════════════ */
     document.addEventListener('click', event => {
-        // Don't close if the click originated inside a dropdown menu
         if (event.target.closest('[data-dropdown-menu]')) return;
         closeAllDropdowns();
         closeAllStatusMenus();
@@ -995,8 +1182,8 @@ document.addEventListener('DOMContentLoaded', function () {
         closeAllDropdowns();
         closeAllStatusMenus();
         closeFilter();
-        window.closeProfile();
-        window.closeMakeEmployee();
+        window.closeProfile?.();
+        window.closeMakeEmployee?.();
         downloadMenu?.classList.add('hidden');
         downloadToggle?.setAttribute('aria-expanded', 'false');
         if (drawerEl && !drawerEl.classList.contains('hidden')) closeBulkDrawer();

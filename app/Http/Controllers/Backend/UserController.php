@@ -19,18 +19,21 @@ use App\Models\City;
 use App\Models\Country;
 use App\Models\Employee;
 use App\Models\Notification;
+use App\Models\Profile;
 use App\Models\State;
 use App\Models\User;
 use App\Services\NotificationService;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
 use Illuminate\Database\QueryException;
 use Illuminate\Filesystem\FilesystemManager;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -422,29 +425,125 @@ class UserController extends Controller
     /* ══════════════════════════════════════════════════════════════
        MAKE EMPLOYEE — convert user to employee
        ══════════════════════════════════════════════════════════════ */
+    /**
+     * GET /admin/users/{user}/make-employee/data
+     * Return user + profile data for the Make Employee modal.
+     */
+    public function makeEmployeeData(User $user): JsonResponse
+    {
+        $user->load([
+            'profile.country',
+            'profile.state',
+            'profile.city',
+        ]);
+
+        $p = $user->profile;
+
+        return response()->json([
+            'data' => [
+                'id' => $user->id,
+                'username' => $user->username,
+                'name' => $user->name ?? $user->username,
+                'email' => $user->email,
+
+                'is_employee' => $user->employee()->exists(),
+
+                'profile' => [
+                    'first_name' => $p?->first_name,
+                    'middle_name' => $p?->middle_name,
+                    'last_name' => $p?->last_name,
+                    'birthdate' => $p?->birthdate?->format('Y-m-d'),
+                    'gender' => $p?->gender,
+                    'zip_code' => $p?->zip_code,
+                    'address' => $p?->address,
+
+                    'country_id' => $p?->country_id,
+                    'state_id' => $p?->state_id,
+                    'city_id' => $p?->city_id,
+
+                    'country_name' => $p?->country?->name,
+                    'state_name' => $p?->state?->name,
+                    'city_name' => $p?->city?->name,
+                ],
+
+                // Useful for building the POST URL
+                'make_emp_url' => route('users.make-employee', $user),
+            ],
+        ]);
+    }
     public function makeEmployee(Request $request, User $user)
     {
         try {
             DB::beginTransaction();
 
+            // ── Eager load everything the employee flow may need ──
+            $user->load([
+                'profile',
+                'employee.department',
+                'employee.branch',
+                'employee.jobProfile',
+                'roles',
+            ]);
+
             if ($user->employee) {
+                DB::rollBack();
                 return back()->with('info', "{$user->username} is already an employee.");
             }
 
+            // ── Generate unique employee code ──
+            $empCode = $this->generateEmployeeCode();
+
+            // ── Create employee ──
             Employee::create([
                 'user_id' => $user->id,
+                'emp_code' => $empCode,
                 'department_id' => $request->department_id ?? null,
+                'branch_id' => $request->branch_id ?? null,
+                'job_profile_id' => $request->job_profile_id ?? null,
                 'country_id' => $request->country_id ?? null,
                 'city_id' => $request->city_id ?? null,
                 'state_id' => $request->state_id ?? null,
-                'address' => optional($user->profile)->address,
-                'zip_code' => optional($user->profile)->zip_code,
-                'birthdate' => optional($user->profile)->birthdate,
                 'hired_date' => now(),
                 'status' => EmployeeStatus::Active->value,
             ]);
 
+            // ── Assign 'employee' role ──
+            $user->syncRoles(['employee']);
+
+            // ── Optional: backfill profile fields if missing ──
+            if ($user->profile) {
+                $user->profile->update([
+                    'address' => $user->profile->address ?? $request->address,
+                    'birthdate' => $user->profile->birthdate ?? $request->birthdate,
+                ]);
+            }
+
+            if ($user->employee) {
+                $user->employee->jobProfile->update([
+                    'branch_id' => $user->employee->jobProfile ?? null,
+                ]);
+            }
+
             DB::commit();
+
+            // ── Reload user with fresh employee + all nested relations ──
+            $user->refresh()->load([
+                'profile',
+                'employee.department',
+                'employee.branch',
+                'employee.jobProfile',
+                'roles',
+            ]);
+
+            // ── AJAX / JSON response ──
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => "{$user->username} is now an employee.",
+                    'employee' => $user->employee,
+                    'roles' => $user->getRoleNames(),
+                    'user' => $user,
+                ]);
+            }
 
             return back()->with('success', "{$user->username} is now an employee.");
 
@@ -454,37 +553,44 @@ class UserController extends Controller
             Log::error('makeEmployee failed', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Unable to convert user to employee.',
+                    'error' => $e->getMessage(),
+                ], 500);
+            }
 
             return back()->with('error', 'Unable to convert user to employee.');
         }
     }
 
-
-    /* ══════════════════════════════════════════════════════════════
-       PROFILE — JSON endpoint (optional fallback)
-       ══════════════════════════════════════════════════════════════ */
-    public function profileShow(User $user)
+    /**
+     * Generate a unique employee code like EMP-0001, EMP-0002, ...
+     */
+    protected function generateEmployeeCode(): string
     {
-        $user->load(['profile', 'employee.department', 'roles']);
+        $last = Employee::query()
+            ->where('emp_code', 'like', 'EMP-%')
+            ->orderByDesc('id')
+            ->value('emp_code');
 
-        return response()->json([
-            'id' => $user->id,
-            'username' => $user->username,
-            'email' => $user->email,
-            'first_name' => optional($user->profile)->first_name,
-            'last_name' => optional($user->profile)->last_name,
-            'phone' => optional($user->profile)->phone,
-            'address' => optional($user->profile)->address,
-            'birthdate' => optional($user->profile)->birthdate,
-            'employee' => $user->employee ? [
-                'department' => optional($user->employee->department)->name,
-                'hired_date' => $user->employee->hired_date,
-                'status' => $user->employee->status?->value,
-            ] : null,
-        ]);
+        $nextNumber = 1;
+        if ($last && preg_match('/EMP-(\d+)/', $last, $m)) {
+            $nextNumber = ((int) $m[1]) + 1;
+        }
+
+        // Safety: loop until unique (in case of gaps or races)
+        do {
+            $code = 'EMP-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+            $exists = Employee::where('emp_code', $code)->exists();
+            $nextNumber++;
+        } while ($exists);
+
+        return $code;
     }
-
 
     public function updateStatus(Request $request, User $user)
     {
@@ -516,8 +622,8 @@ class UserController extends Controller
 
 
     /* ══════════════════════════════════════════════════════════════
-   IMPORT
-   ══════════════════════════════════════════════════════════════ */
+        IMPORT
+    ══════════════════════════════════════════════════════════════ */
     public function importForm()
     {
         $roles = Role::query()->orderBy('name')->pluck('name');
@@ -689,7 +795,6 @@ class UserController extends Controller
             'message' => "Updated {$updated} user(s) to {$status->label()}.",
         ]);
     }
-
 
     public function bulkOperation(Request $request)
     {
