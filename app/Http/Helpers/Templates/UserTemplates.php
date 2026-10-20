@@ -6,6 +6,7 @@ use App\Http\Enums\ActiveStatus;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Spatie\Permission\Models\Role;
 use Throwable;
 
 class UserTemplates
@@ -40,7 +41,8 @@ class UserTemplates
                     });
             });
         }
-        // ── Criteria: Role ──────────────────────────────────────────
+
+        // ── Criteria: Role ─────────────────────────────────────────
         if ($role = $request->input('role')) {
             $query->whereHas('roles', fn($q) => $q->where('name', $role));
         }
@@ -62,7 +64,13 @@ class UserTemplates
 
         // ── Criteria: Status ───────────────────────────────────────
         if ($status = $request->input('status')) {
-            $query->where('status', $status);
+            // Accept int-backed or string-backed enum; ignore invalid input.
+            $enum = ActiveStatus::tryFrom($status)
+                ?? (is_numeric($status) ? ActiveStatus::tryFrom((int) $status) : null);
+
+            if ($enum) {
+                $query->where('status', $enum->value);
+            }
         }
 
         // ── Criteria: Timestamp range ──────────────────────────────
@@ -73,7 +81,16 @@ class UserTemplates
             $query->where('updated_at', '<=', $to);
         }
 
-        return $query->latest('updated_at');
+        // ── Sorting ────────────────────────────────────────────────
+        $allowedSorts = ['updated_at', 'created_at', 'username', 'email', 'status', 'id'];
+
+        $sort = in_array($request->input('sort'), $allowedSorts, true)
+            ? $request->input('sort')
+            : 'updated_at';
+
+        $direction = $request->input('direction') === 'asc' ? 'asc' : 'desc';
+
+        return $query->orderBy($sort, $direction);
     }
 
     /* ══════════════════════════════════════════════════════════════
@@ -112,6 +129,23 @@ class UserTemplates
     }
 
     /* ══════════════════════════════════════════════════════════════
+       Filter Criterias 
+       ══════════════════════════════════════════════════════════════ */
+    public function filterCriterias(): array
+    {
+        return [
+            'name' => 'Name',
+            'email' => 'Email',
+            'date' => 'Date',
+            'dob' => 'DOB',
+            'status' => 'Status',
+            'role' => 'Role',
+            'timestamp' => 'Timestamp',
+            'sort' => 'Sort'
+        ];
+    }
+
+    /* ══════════════════════════════════════════════════════════════
        DOWNLOAD OPTIONS (for dropdown)
        ══════════════════════════════════════════════════════════════ */
     public function downloadOptionsForExport(): array
@@ -125,41 +159,7 @@ class UserTemplates
         ];
     }
 
-    /* ══════════════════════════════════════════════════════════════
-       ACTION BUTTONS (per user row)
-       ══════════════════════════════════════════════════════════════ */
-    // public function actionButtons(User $user): array
-    // {
-    //     return [
-    //         'view_profile' => [
-    //             'route' => route('users.profile.show', $user->id),
-    //             'icon' => 'ri-eye-line',
-    //             'label' => 'View Profile',
-    //             'color' => 'text-slate-600',
-    //         ],
-    //         'make_employee' => [
-    //             'route' => route('users.make-employee', $user->id),
-    //             'icon' => 'ri-briefcase-4-line',
-    //             'label' => 'Make Employee',
-    //             'color' => 'text-emerald-600',
-    //             'confirm' => true,
-    //         ],
-    //         'edit' => [
-    //             'route' => route('users.edit', $user->id),
-    //             'icon' => 'ri-edit-line',
-    //             'label' => 'Edit',
-    //             'color' => 'text-indigo-600',
-    //         ],
-    //         'delete' => [
-    //             'route' => route('users.destroy', $user->id),
-    //             'icon' => 'ri-delete-bin-6-line',
-    //             'label' => 'Delete',
-    //             'color' => 'text-red-600',
-    //             'confirm' => true,
-    //         ],
-    //     ];
-    // }
-
+    
 
     public function actionButtons(User $user): array
     {
@@ -214,6 +214,56 @@ class UserTemplates
         } catch (Throwable $e) {
             return null;
         }
+    }
+
+    public function configureEmployeeForm(User $user, array $options = [], ?string $action = null): array
+    {
+        $user->load([
+            'profile.country',
+            'profile.state',
+            'profile.city',
+            'employee',
+        ]);
+
+        $p = $user->profile;
+
+        return [
+            'id'            => $user->id,
+            'username'      => $user->username,
+            'name'          => $user->name ?? $user->username,
+            'email'         => $user->email,
+            'is_employee'   => $user->employee()->exists(),
+            'profile'       => [
+                'first_name'  => $p?->first_name,
+                'middle_name' => $p?->middle_name,
+                'last_name'   => $p?->last_name,
+                'birthdate'   => $p?->birthdate?->format('Y-m-d'),
+                'gender'      => $p?->gender,
+                'zip_code'    => $p?->zip_code,
+                'address'     => $p?->address,
+                'country_id'  => $p?->country_id,
+                'state_id'    => $p?->state_id,
+                'city_id'     => $p?->city_id,
+                'country_name'=> $p?->country?->name,
+                'state_name'  => $p?->state?->name,
+                'city_name'   => $p?->city?->name,
+            ],
+            'make_emp_url'  => route('users.make-employee', $user),
+            'status_options'=> $this->getStatus(),
+            'roles'         => $this->getRoles(),
+            'options'       => $options,
+            'action'        => $action,
+        ];
+    }
+
+    public function getRoles()
+    {
+        $roles = Role::query()
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
+
+        return $roles;
     }
 
     public function getStatus()

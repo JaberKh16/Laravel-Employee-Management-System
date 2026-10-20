@@ -3,7 +3,7 @@
           id="mainSearchForm"
           class="toolbar-row">
 
-        @foreach (['name','email','date','dob','status','updated_from','updated_to','criteria'] as $param)
+        @foreach (['name','email','date','dob','status', 'role', 'updated_from','updated_to','criteria'] as $param)
             @if (request($param))
                 <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
             @endif
@@ -33,7 +33,7 @@
             'class'   => 'toolbar-btn min-w-[110px]',
         ])
 
-        @if (request()->hasAny(['search','name','email','date','dob','status','updated_from','updated_to','criteria']))
+        @if (request()->hasAny(['search','name','email','date','dob','status','role','updated_from','updated_to','criteria']))
             <a href="{{ route('users.index') }}"
                class="toolbar-btn rounded-xl border border-gray-300 bg-white px-4 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
                 <i class="ri-close-line text-lg"></i>

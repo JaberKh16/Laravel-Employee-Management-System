@@ -16,10 +16,23 @@
             </div>
         </div>
 
-        <form id="makeEmployeeForm" method="POST" action="">
+        <form id="makeEmployeeForm" method="POST" action="" novalidate>
             @csrf
 
             <div class="max-h-[65vh] overflow-y-auto px-6 py-5">
+
+                {{-- ═══ GLOBAL ERROR SUMMARY ═══ --}}
+                <div id="meErrorSummary"
+                     class="mb-4 hidden rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+                    <div class="flex items-start gap-2">
+                        <i class="ri-error-warning-line mt-0.5 text-base"></i>
+                        <div>
+                            <p class="font-semibold">Please fix the following errors:</p>
+                            <ul id="meErrorList" class="mt-1 list-inside list-disc space-y-0.5"></ul>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- ── PERSONAL INFO ── --}}
                 <h4 class="mb-3 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Personal Information
@@ -32,8 +45,13 @@
                         <label for="me_name" class="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                             Full Name <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" id="me_name" name="name" required
-                               class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                        <input type="text" id="me_name" name="name" required aria-required="true"
+                               autocomplete="name"
+                               class="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:bg-gray-700 dark:text-white
+                                      @error('name') border-red-400 dark:border-red-500 @else border-gray-300 dark:border-gray-600 @enderror">
+                        @error('name')
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- DOB --}}
@@ -41,9 +59,13 @@
                         <label for="me_dob" class="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                             Date of Birth <span class="text-red-500">*</span>
                         </label>
-                        <input type="date" id="me_dob" name="birthdate" required
+                        <input type="date" id="me_dob" name="birthdate" required aria-required="true"
                                max="{{ now()->format('Y-m-d') }}"
-                               class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                               class="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:bg-gray-700 dark:text-white
+                                      @error('birthdate') border-red-400 dark:border-red-500 @else border-gray-300 dark:border-gray-600 @enderror">
+                        @error('birthdate')
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- Age (auto-filled, readonly) --}}
@@ -61,13 +83,24 @@
                         <label for="me_gender" class="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                             Gender <span class="text-red-500">*</span>
                         </label>
-                        <select id="me_gender" name="gender" required
-                                class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                        @php
+                            $genderOptions = [
+                                'male'   => 'Male',
+                                'female' => 'Female',
+                                'other'  => 'Other',
+                            ];
+                        @endphp
+                        <select id="me_gender" name="gender" required aria-required="true"
+                                class="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:bg-gray-700 dark:text-white
+                                       @error('gender') border-red-400 dark:border-red-500 @else border-gray-300 dark:border-gray-600 @enderror">
                             <option value="">Select…</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="other">Other</option>
+                            @foreach($genderOptions as $value => $label)
+                                <option value="{{ $value }}" @selected(old('gender') === $value)>{{ $label }}</option>
+                            @endforeach
                         </select>
+                        @error('gender')
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- Zip Code --}}
@@ -76,7 +109,11 @@
                             Zip Code
                         </label>
                         <input type="text" id="me_zip" name="zip_code" maxlength="20"
+                               value="{{ old('zip_code') }}"
                                class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                        @error('zip_code')
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
                     </div>
 
                 </div>
@@ -88,18 +125,31 @@
 
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-                    {{-- Department --}}
+                   {{-- Department --}}
                     <div>
                         <label for="me_department" class="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                             Department <span class="text-red-500">*</span>
                         </label>
-                        <select id="me_department" name="department_id" required
-                                class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                        <select id="me_department" name="department_id" required aria-required="true"
+                                aria-describedby="me_department_error"
+                                class="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:bg-gray-700 dark:text-white
+                                    @error('department_id') border-red-400 dark:border-red-500 @else border-gray-300 dark:border-gray-600 @enderror">
                             <option value="">Select department…</option>
                             @foreach (\App\Models\Department::orderBy('name')->get() as $dept)
-                                <option value="{{ $dept->id }}">{{ $dept->name }}</option>
+                                <option value="{{ $dept->id }}" @selected(old('department_id') == $dept->id)>{{ $dept->name }}</option>
                             @endforeach
                         </select>
+
+                        {{-- Inline error (JS toggles `hidden`) --}}
+                        <p id="me_department_error"
+                        class="mt-1 hidden flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
+                            <i class="ri-error-warning-line text-sm"></i>
+                            <span>Department is required.</span>
+                        </p>
+
+                        @error('department_id')
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- Branch (optional) --}}
@@ -111,12 +161,13 @@
                                 class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                             <option value="">Select branch…</option>
                             @foreach (\App\Models\Branch::orderBy('name')->get() as $branch)
-                                <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                <option value="{{ $branch->id }}" @selected(old('branch_id') == $branch->id)>{{ $branch->name }}</option>
                             @endforeach
                         </select>
+                        @error('branch_id')
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
                     </div>
-
-                  
 
                 </div>
 
@@ -136,9 +187,12 @@
                                 class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                             <option value="">Select country…</option>
                             @foreach (\App\Models\Country::orderBy('name')->get() as $c)
-                                <option value="{{ $c->id }}">{{ $c->name }}</option>
+                                <option value="{{ $c->id }}" @selected(old('country_id') == $c->id)>{{ $c->name }}</option>
                             @endforeach
                         </select>
+                        @error('country_id')
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- State --}}
@@ -150,6 +204,9 @@
                                 class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                             <option value="">Select state…</option>
                         </select>
+                        @error('state_id')
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- City --}}
@@ -161,6 +218,9 @@
                                 class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                             <option value="">Select city…</option>
                         </select>
+                        @error('city_id')
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- Address --}}
@@ -169,14 +229,21 @@
                             Address
                         </label>
                         <textarea id="me_address" name="address" rows="2"
-                                  class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white"></textarea>
+                                  class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-600 dark:bg-gray-700 dark:text-white">{{ old('address') }}</textarea>
+                        @error('address')
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
                     </div>
 
                 </div>
 
-                {{-- Live error box --}}
+                {{-- ═══ AJAX LIVE ERROR BOX (JS-populated) ═══ --}}
                 <div id="meError"
                      class="mt-4 hidden rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+                    <div class="flex items-start gap-2">
+                        <i class="ri-error-warning-line mt-0.5"></i>
+                        <ul id="meErrorList2" class="list-inside list-disc space-y-0.5"></ul>
+                    </div>
                 </div>
             </div>
 
@@ -199,4 +266,3 @@
         </form>
     </div>
 </div>
-

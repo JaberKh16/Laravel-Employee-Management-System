@@ -85,11 +85,9 @@ class UserController extends Controller
                 ->all();
 
             // Roles for the filter dropdown
-            $roles = Role::query()
-                ->select('id', 'name')
-                ->orderBy('name')
-                ->get();
+            $roles = $this->templates->getRoles();
 
+            $filterCriterias = $this->templates->filterCriterias();
 
             return view('admin.pages.Users.index', compact(
                 'users',
@@ -97,7 +95,8 @@ class UserController extends Controller
                 'columns',
                 'actionButtons',
                 'statusOptions',
-                'roles'
+                'roles',
+                'filterCriterias'
             ));
 
         } catch (Throwable $e) {
@@ -431,46 +430,21 @@ class UserController extends Controller
      */
     public function makeEmployeeData(User $user): JsonResponse
     {
-        $user->load([
-            'profile.country',
-            'profile.state',
-            'profile.city',
-        ]);
-
-        $p = $user->profile;
+        $data = $this->templates->configureEmployeeForm(
+            user: $user,
+            options: [
+                'genders' => ['male', 'female', 'other'],
+            ],
+            action: route('users.make-employee', $user),
+        );
 
         return response()->json([
-            'data' => [
-                'id' => $user->id,
-                'username' => $user->username,
-                'name' => $user->name ?? $user->username,
-                'email' => $user->email,
-
-                'is_employee' => $user->employee()->exists(),
-
-                'profile' => [
-                    'first_name' => $p?->first_name,
-                    'middle_name' => $p?->middle_name,
-                    'last_name' => $p?->last_name,
-                    'birthdate' => $p?->birthdate?->format('Y-m-d'),
-                    'gender' => $p?->gender,
-                    'zip_code' => $p?->zip_code,
-                    'address' => $p?->address,
-
-                    'country_id' => $p?->country_id,
-                    'state_id' => $p?->state_id,
-                    'city_id' => $p?->city_id,
-
-                    'country_name' => $p?->country?->name,
-                    'state_name' => $p?->state?->name,
-                    'city_name' => $p?->city?->name,
-                ],
-
-                // Useful for building the POST URL
-                'make_emp_url' => route('users.make-employee', $user),
-            ],
+            'success' => true,
+            'data'    => $data,
         ]);
     }
+
+
     public function makeEmployee(Request $request, User $user)
     {
         try {
@@ -514,6 +488,7 @@ class UserController extends Controller
             if ($user->profile) {
                 $user->profile->update([
                     'address' => $user->profile->address ?? $request->address,
+                    'zip_code' => $user->profile->zip_code ?? $request->zip_code,
                     'birthdate' => $user->profile->birthdate ?? $request->birthdate,
                 ]);
             }

@@ -903,7 +903,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     /* ════════════════════════════════════════════════════════════
-       FILTER PANEL  ← FIXED
+       FILTER PANEL 
        ════════════════════════════════════════════════════════════ */
     function openFilter() {
         if (!filterPanel) return;
@@ -940,12 +940,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Open filter on load if query params exist
-    @if (request()->hasAny(['name', 'email', 'date', 'dob', 'status', 'updated_from', 'updated_to']))
+    @if (request()->hasAny(['name', 'email', 'date', 'dob', 'status', 'role', 'updated_from', 'updated_to']))
         openFilter();
     @endif
 
     /* ════════════════════════════════════════════════════════════
-       CRITERIA RADIO SYNC  ← FIXED
+       CRITERIA RADIO SYNC  
        ════════════════════════════════════════════════════════════ */
     function syncCriteriaFields() {
         const selected = document.querySelector('.criteria-radio:checked')?.value || 'name';
@@ -991,7 +991,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /* ════════════════════════════════════════════════════════════
-       DOWNLOAD DROPDOWN + DOWNLOAD ITEMS  ← FIXED
+       DOWNLOAD DROPDOWN + DOWNLOAD ITEMS  
        ════════════════════════════════════════════════════════════ */
     if (downloadToggle && downloadMenu && !downloadToggle.dataset.dlBound) {
         downloadToggle.dataset.dlBound = '1';
@@ -1155,9 +1155,68 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    /* ── MAKE EMPLOYEE — submit with client-side validation ── */
+    const meDepartmentError = document.getElementById('me_department_error');
+
+    function clearDepartmentError() {
+        if (!meDepartment) return;
+        meDepartment.classList.remove('border-red-400', 'dark:border-red-500',
+                                    'focus:border-red-400', 'focus:ring-red-500/30');
+        meDepartment.classList.add('border-gray-300', 'dark:border-gray-600',
+                                'focus:border-emerald-500', 'focus:ring-emerald-500/30');
+        meDepartment.setAttribute('aria-invalid', 'false');
+        meDepartmentError?.classList.add('hidden');
+        meDepartmentError?.classList.remove('flex');
+    }
+
+    function showDepartmentError(message) {
+        if (!meDepartment) return;
+        meDepartment.classList.remove('border-gray-300', 'dark:border-gray-600',
+                                    'focus:border-emerald-500', 'focus:ring-emerald-500/30');
+        meDepartment.classList.add('border-red-400', 'dark:border-red-500',
+                                'focus:border-red-400', 'focus:ring-red-500/30');
+        meDepartment.setAttribute('aria-invalid', 'true');
+
+        if (meDepartmentError) {
+            const span = meDepartmentError.querySelector('span');
+            if (span) span.textContent = message || 'Department is required.';
+            meDepartmentError.classList.remove('hidden');
+            meDepartmentError.classList.add('flex');
+        }
+        meDepartment.focus({ preventScroll: false });
+        meDepartment.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // Clear error as soon as the user picks a department
+    if (meDepartment && !meDepartment.dataset.validationBound) {
+        meDepartment.dataset.validationBound = '1';
+        meDepartment.addEventListener('change', () => {
+            if (meDepartment.value) clearDepartmentError();
+        });
+    }
+
     if (makeEmployeeForm && !makeEmployeeForm.dataset.submitBound) {
         makeEmployeeForm.dataset.submitBound = '1';
-        makeEmployeeForm.addEventListener('submit', function () {
+
+        makeEmployeeForm.addEventListener('submit', function (event) {
+            // ── Client-side validation ──
+            let firstInvalid = null;
+
+            if (meDepartment && !meDepartment.value) {
+                showDepartmentError('Department is required.');
+                firstInvalid = firstInvalid || meDepartment;
+            } else {
+                clearDepartmentError();
+            }
+
+            if (firstInvalid) {
+                event.preventDefault();
+                event.stopPropagation();
+                notify('warning', 'Please select a department before continuing.');
+                return;
+            }
+
+            // ── Show loading state ──
             if (typeof window.setButtonLoading === 'function') window.setButtonLoading('makeEmployeeSubmit', true);
             if (typeof window.showLoader === 'function') window.showLoader('Creating employee record…');
         });
