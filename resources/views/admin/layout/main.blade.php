@@ -13,7 +13,7 @@
     <title>@yield('title', config('app.name', 'Laravel'))</title>
 
     {{-- Anti-FOUC (inline, must run before CSS) --}}
-    @include('admin.partials.js.anti-fouc')
+    @include('admin.partials.resources.js._anti-fouc-scripts')
 
     {{-- CSS Dashboard --}}
     @include('admin.partials._dashboard_css')
@@ -101,7 +101,7 @@
     <script src="{{ mix('js/script.js') }}" defer></script>
 
    
-    @include('admin.partials.js.scroll-top')
+    @include('admin.partials.resources.js._scroll-top-scripts')
     @include('components.sweet-alert')
 
     @php

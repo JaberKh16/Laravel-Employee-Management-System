@@ -1,3 +1,6 @@
+@extends('admin.layout.main')
+
+@push('dashboard_style')
 <ul id="notifications-list"
     class="max-h-80 overflow-y-auto tb-scroll divide-y divide-gray-100/70 dark:divide-gray-700/50">
     {{-- Filled by JS --}}
@@ -11,7 +14,10 @@
         </div>
     </li>
 </ul>
+@endpus
 
+
+@push('dashboard_scripts')
 <script>
 
 /* =========================================================
@@ -199,3 +205,5 @@
 })();
 
 </script>
+
+@endpush

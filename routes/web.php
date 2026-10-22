@@ -114,6 +114,7 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         Route::put('social-services/{social_service}', [SocialServiceController::class, 'update'])->name('social.services.update');
         Route::patch('social-services/{social_service}', [SocialServiceController::class, 'update'])->name('social.services.patch');
         Route::delete('social-services/{social_service}', [SocialServiceController::class, 'destroy'])->name('social.services.destroy');
+   
 
         // Optional audit/settings (create when ready)
         // Route::get('audit', [...])->name('audit.index');
@@ -126,11 +127,13 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
        ========================================================= */
         Route::prefix('notifications')->name('notifications.')->group(function () {
             Route::get('/', [NotificationController::class, 'index'])->name('index');
+            Route::get('/list', [NotificationController::class, 'list'])->name('list');
             Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');
             Route::patch('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
             Route::patch('/{notification}/read', [NotificationController::class, 'markAsRead'])->name('read');
             Route::patch('/{notification}/dismiss', [NotificationController::class, 'dismiss'])->name('dismiss');
             Route::delete('/{notification}', [NotificationController::class, 'destroy'])->name('destroy');
+            Route::patch('/bulk/{action}', [NotificationController::class, 'bulkOperation'])->where('action', 'read|dismiss')->name('bulk.action');
         });
     });
 });
