@@ -8,6 +8,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Spatie\Permission\Models\Role;
 use Throwable;
+use App\Models\Department;
+use App\Models\City;
+use App\Models\Country;
+use App\Models\Branch;
 
 class UserTemplates
 {
@@ -223,16 +227,25 @@ class UserTemplates
             'profile.state',
             'profile.city',
             'employee',
+            'employee.jobProfile',
+            'employee.department',
+            'employee.jobProfile.branch',
         ]);
 
         $p = $user->profile;
+        $employee = $user->employee;  
+
+        // $isEmployee = (bool) $employee;
+        $isEmployee = $user->employee()->exists();
+        $jp = $employee?->jobProfile;
 
         return [
             'id'            => $user->id,
             'username'      => $user->username,
             'name'          => $user->name ?? $user->username,
             'email'         => $user->email,
-            'is_employee'   => $user->employee()->exists(),
+            // 'is_employee'   => $user->employee()->exists(),
+            'is_employee'   => $isEmployee,
             'profile'       => [
                 'first_name'  => $p?->first_name,
                 'middle_name' => $p?->middle_name,
@@ -248,9 +261,52 @@ class UserTemplates
                 'state_name'  => $p?->state?->name,
                 'city_name'   => $p?->city?->name,
             ],
+            // ── Employee record (present only if is_employee) ──
+            'employee' => $employee ? [
+                'id'            => $employee->id,
+                'department_id' => $employee->department_id,
+                'status'        => $employee->status?->value ?? $employee->status,
+                'hired_date'    => $employee->hired_date?->format('Y-m-d'),
+            ] : null,
+
+            // ── Job profile (null if not generated yet) ──
+            'job_profile_id' => $jp?->id,
+            'job_profile'    => $jp ? [
+                'id'                    => $jp->id,
+                'employment_type'       => $jp->employment_type,
+                'designation'           => $jp->designation,
+                'department_id'         => $jp->department_id,
+                'branch_id'             => $jp->branch_id,
+                'calculated_years'      => $jp->calculated_years,
+                'is_promoted'           => (bool) $jp->is_promoted,
+                'last_promotion_date'   => $jp->last_promotion_date?->format('Y-m-d'),
+                'basic_salary'          => $jp->basic_salary,
+                'allowance'             => $jp->allowance,
+                'currency'              => $jp->currency,
+                'bank_account'          => $jp->bank_account,
+                'national_id'           => $jp->national_id,
+                'passport_number'       => $jp->passport_number,
+                'nationality'           => $jp->nationality,
+                'marital_status'        => $jp->marital_status,
+                'phone'                 => $jp->phone,
+                'emergency_contact_name'=> $jp->emergency_contact_name,
+                'emergency_contact_phone'=> $jp->emergency_contact_phone,
+                'address'               => $jp->address,
+                'postal_code'           => $jp->postal_code,
+                'notes'                 => $jp->notes,
+                'meta'                  => $jp->meta,
+            ] : null,
+
             'make_emp_url'  => route('users.make-employee', $user),
+            'update_url'    => $user->employee()->exists()
+                    ? route('users.update-employee', $user)
+                    : null,
             'status_options'=> $this->getStatus(),
             'roles'         => $this->getRoles(),
+            'departments'   => $this->getDepartments(),
+            'cities'        => $this->getCities(),
+            'countries'     => $this->getCountries(),
+            'branches'      => $this->getBranches(),
             'options'       => $options,
             'action'        => $action,
         ];
@@ -265,6 +321,31 @@ class UserTemplates
 
         return $roles;
     }
+
+    public function getDepartments()
+    {
+        $depts = Department::query()->select('id', 'name')->orderBy('id', 'asc')->get();
+        return $depts;
+    }
+
+    public function getCities()
+    {
+        $cities = City::query()->select('id', 'name')->orderBy('id', 'asc')->get();
+        return $cities;
+    }
+
+    public function getCountries()
+    {
+        $cities = Country::query()->select('id', 'name')->orderBy('id', 'asc')->get();
+        return $cities;
+    }
+
+    public function getBranches()
+    {
+        $cities = Branch::query()->select('id', 'name')->orderBy('id', 'asc')->get();
+        return $cities;
+    }
+
 
     public function getStatus()
     {

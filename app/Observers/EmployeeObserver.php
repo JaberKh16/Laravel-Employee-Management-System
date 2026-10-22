@@ -43,23 +43,42 @@ class EmployeeObserver
     public function created(Employee $employee): void
     {
         $employee->logActivity('created');
-        $admins = User::role('admin')->pluck('id')->all();
-        NotificationService::toUsers(
-            userIds: $admins,
-            type: 'employee.created',
-            title: 'New employee added',
-            message: "{$employee->name} joined {$employee->department->name}.",
-            options: [
-                'category' => 'success',
-                'icon' => 'user-plus',
-                'action_url' => route('employees.show', $employee),
-                'action_label' => 'View employee',
-                'related_type' => Employee::class,
-                'related_id' => $employee->id,
-            ]
-        );
 
+        // Make sure relations are loaded before reading them
+        $employee->loadMissing(['user.profile', 'department']);
 
+        $name       = $employee->user?->profile?->full_name
+                    ?? $employee->user?->username
+                    ?? 'Employee #' . $employee->id;
+
+        $department = $employee->department?->name ?? 'no department';
+
+        try {
+            $admins = User::role('admin')->pluck('id')->all();
+
+            if (! empty($admins)) {
+                NotificationService::toUsers(
+                    userIds: $admins,
+                    type:    'employee.created',
+                    title:   'New employee added',
+                    message: "{$name} joined {$department}.",
+                    options: [
+                        'category'     => 'success',
+                        'icon'         => 'user-plus',
+                        'action_url'   => route('employees.show', $employee),
+                        'action_label' => 'View employee',
+                        'related_type' => Employee::class,
+                        'related_id'   => $employee->id,
+                    ]
+                );
+            }
+        } catch (\Throwable $e) {
+            // Notification failure should NOT roll back employee creation
+            Log::channel('employee')->error('Employee-created notification failed', [
+                'employee_id' => $employee->id,
+                'error'       => $e->getMessage(),
+            ]);
+        }
     }
 
 
@@ -76,22 +95,32 @@ class EmployeeObserver
     //             ->all(),
     //     ]));
     // }
-    public function updated(Employee $employee): void
+   public function updated(Employee $employee): void
     {
+        $changes = $employee->getChanges();
+
+        // Nothing actually changed? Skip.
+        if (empty($changes)) {
+            return;
+        }
+
+        $original = collect($employee->getOriginal())
+            ->only(array_keys($changes))
+            ->all();
+
         $employee->logActivity('updated', 'info', [
-            'changes' => $employee->getChanges(),
-            'original' => collect($employee->getOriginal())
-                ->only(array_keys($employee->getChanges()))
-                ->all(),
+            'changes'  => $changes,
+            'original' => $original,
         ]);
     }
-
+    
     /* ═══════════════════════════════════════════════════════════
        DELETED (soft delete)
        ═══════════════════════════════════════════════════════════ */
     public function deleted(Employee $employee): void
     {
         Log::channel('employee')->warning('Employee deleted', $this->context($employee));
+        $employee->logActivity('deleted', 'warning');
     }
 
     /* ═══════════════════════════════════════════════════════════
@@ -100,6 +129,7 @@ class EmployeeObserver
     public function restored(Employee $employee): void
     {
         Log::channel('employee')->notice('Employee restored', $this->context($employee));
+        $employee->logActivity('restored', 'notice');
     }
 
     /* ═══════════════════════════════════════════════════════════
@@ -108,5 +138,6 @@ class EmployeeObserver
     public function forceDeleted(Employee $employee): void
     {
         Log::channel('employee')->critical('Employee force-deleted', $this->context($employee));
+        $employee->logActivity('force-deleted', 'critical');
     }
 }

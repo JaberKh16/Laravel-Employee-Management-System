@@ -254,6 +254,7 @@
                 </div>
             </div>
         </div>
+    
 
         {{-- ═══════════════ FOOTER ═══════════════ --}}
         <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-4 dark:border-gray-700">

@@ -1,7 +1,74 @@
 @extends('admin.layout.main')
 
 @push('dashboard_style')
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container {
+        width: 100% !important;
+    }
+
+    .select2-container--default .select2-selection--multiple {
+        min-height: 48px;
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+        padding: 5px 8px;
+        background: #fff;
+    }
+
+    .select2-container--default.select2-container--focus
+    .select2-selection--multiple {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgb(99 102 241 / 15%);
+    }
+
+    .select2-container--default .select2-selection--multiple
+    .select2-selection__choice {
+        background: #eef2ff;
+        border: 1px solid #c7d2fe;
+        border-radius: 7px;
+        color: #4338ca;
+        padding: 3px 7px;
+        margin-top: 4px;
+    }
+
+    .select2-container--default .select2-selection--multiple
+    .select2-selection__choice__remove {
+        color: #6366f1;
+        margin-right: 5px;
+    }
+
+    .select2-dropdown {
+        border: 1px solid #c7d2fe;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 10px 25px rgb(0 0 0 / 8%);
+    }
+
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background: #4f46e5;
+    }
+
+    .dark .select2-container--default .select2-selection--multiple {
+        background: #111827;
+        border-color: #4b5563;
+        color: #f9fafb;
+    }
+
+    .dark .select2-container--default .select2-selection--multiple
+    .select2-selection__rendered {
+        color: #f9fafb;
+    }
+
+    .dark .select2-dropdown {
+        background: #1f2937;
+        border-color: #4b5563;
+        color: #f9fafb;
+    }
+
+    .dark .select2-container--default .select2-results__option[aria-selected="true"] {
+        background: #374151;
+    }
+</style>
+
 @endpush
 
 @section('dashboard_content')
@@ -62,35 +129,14 @@
                         Roles <span class="text-red-500">*</span>
                     </label>
 
-                   @php
-                        /*
-                        * $userRole can arrive in three different shapes:
-                        *   1. Collection of Spatie\Permission\Models\Role  → from $user->roles->all()
-                        *   2. Array of role names (strings)                → from old('roles')
-                        *   3. Array of role IDs (ints)                     → from old('roles') if the
-                        *                                                     form previously sent IDs
-                        *
-                        * Normalise everything to a flat array of role NAMES, then compare
-                        * by name below. Names are unique in Spatie, so this is safe.
-                        */
-                        $rawSelected = old('roles', $userRole ?? []);
+                    @php
+                        // Precompute the selected role IDs so we can compare
+                        // cleanly. Works for both create (empty) and edit.
+                        $selectedRoles = old('roles', isset($userRole) ? $userRole : []);
 
-                        if ($rawSelected instanceof \Illuminate\Support\Collection) {
-                            $rawSelected = $rawSelected->all();
-                        }
-
-                        $selectedRoles = collect($rawSelected)->map(function ($item) {
-                            // Role object → its name
-                            if ($item instanceof \Spatie\Permission\Models\Role) {
-                                return $item->name;
-                            }
-                            // Plain string (name) → keep
-                            if (is_string($item) && ! is_numeric($item)) {
-                                return $item;
-                            }
-                            // ID → look up its name from the $roles collection passed in
-                            return $roles->firstWhere('id', (int) $item)?->name;
-                        })->filter()->values()->all();
+                        // Normalise: if $userRole contains names, keep as-is;
+                        // if it contains IDs, keep as-is. Comparison below
+                        // handles both by checking name OR id.
                     @endphp
 
                     <select id="roleSelect"
@@ -98,29 +144,16 @@
                             multiple
                             size="5"
                             class="block w-full rounded-xl border bg-white px-3 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white
-                                @error('roles') border-red-500 focus:border-red-500 focus:ring-red-500/30
-                                @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
-                                @enderror">
+                                   @error('roles') border-red-500 focus:border-red-500 focus:ring-red-500/30
+                                   @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
+                                   @enderror">
                         @foreach ($roles as $role)
-                            <option value="{{ $role->id }}" {{ in_array($role->name, $selectedRoles, true) ? 'selected' : '' }}>
+                            <option value="{{ $role->id }}"
+                                {{ in_array($role->id, $selectedRoles) || in_array($role->name, $selectedRoles) ? 'selected' : '' }}>
                                 {{ $role->name }}
                             </option>
                         @endforeach
                     </select>
-                      {{-- <select class="form-select w-full @error('roles') is-invalid @enderror"
-                            name="roles[]"
-                            id="roleSelect">
-                        @foreach ($roles as $key => $role)
-                            <option value="{{ $role->id }}"
-                                @isset($user)
-                                    @foreach ($userRole as $userrole)
-                                        {{ $userrole->name == $role->name ? 'selected' : '' }}
-                                    @endforeach
-                                @endisset>
-                                {{ $role->name }}
-                            </option>
-                        @endforeach
-                    </select> --}}
 
                     <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                         Hold <kbd class="rounded border border-gray-300 bg-gray-100 px-1.5 py-0.5 text-[10px] font-mono dark:border-gray-600 dark:bg-gray-700">Ctrl</kbd>
@@ -154,7 +187,6 @@
                                type="text"
                                name="first_name"
                                value="{{ old('first_name', $user->profile->first_name ?? '') }}"
-                               required
                                autocomplete="given-name"
                                placeholder="John"
                                class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
@@ -176,7 +208,6 @@
                                type="text"
                                name="last_name"
                                value="{{ old('last_name', $user->profile->last_name ?? '') }}"
-                               required
                                autocomplete="family-name"
                                placeholder="Doe"
                                class="block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500
@@ -201,7 +232,6 @@
                            type="text"
                            name="username"
                            value="{{ old('username', $user->username ?? '') }}"
-                           required
                            autocomplete="username"
                            autofocus
                            placeholder="e.g. john.doe"
@@ -218,6 +248,9 @@
                             <span>{{ $message }}</span>
                         </p>
                     @enderror
+                    <div id="username-status"
+                        class="mt-2 text-xs font-medium"
+                        aria-live="polite"></div>
                 </div>
 
                 {{-- ============================================================
@@ -247,6 +280,9 @@
                             <span>{{ $message }}</span>
                         </p>
                     @enderror
+                    <div id="email-status"
+                        class="mt-2 text-xs font-medium"
+                        aria-live="polite"></div>
                 </div>
 
                 {{-- Divider --}}
@@ -278,6 +314,27 @@
                                       @else border-gray-300 focus:border-indigo-500 dark:border-gray-600 dark:focus:border-indigo-400
                                       @enderror">
 
+                        <div id="password-strength" class="mt-3" aria-live="polite">
+                            <div class="mb-2 flex items-center justify-between">
+                                <span class="text-xs text-gray-500 dark:text-gray-400">
+                                    Password strength
+                                </span>
+                                <span id="password-strength-label"
+                                    class="text-xs font-semibold text-gray-500">
+                                    Not entered
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-5 gap-1.5">
+                                @for ($i = 1; $i <= 5; $i++)
+                                    <div data-strength-bar="{{ $i }}"
+                                        class="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+                                @endfor
+                            </div>
+
+                            <p id="password-feedback"
+                            class="mt-2 text-xs text-gray-500 dark:text-gray-400"></p>
+                        </div>
                         <button type="button"
                                 data-toggle-password="password"
                                 aria-label="Toggle password visibility"
@@ -322,7 +379,11 @@
                                autocomplete="new-password"
                                placeholder="••••••••"
                                class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 pr-11 text-sm text-gray-900 shadow-sm transition-colors placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500 dark:focus:border-indigo-400">
+                        
 
+                        <div id="password-confirm-status"
+                        class="mt-2 text-xs font-medium"
+                        aria-live="polite"></div>
                         <button type="button"
                                 data-toggle-password="password-confirm"
                                 aria-label="Toggle password visibility"
@@ -365,76 +426,362 @@
 @endsection
 
 @push('dashboard_script')
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script>
-        // ============================================================
-        // Select2 — initialize the role multi-select
-        // ============================================================
-        document.addEventListener('DOMContentLoaded', function () {
-            if (window.jQuery && jQuery.fn.select2) {
-                jQuery('#roleSelect').select2({
-                    placeholder: 'Select one or more roles',
-                    allowClear: true,
-                    width: '100%',
-                    closeOnSelect: false,
-                });
-            }
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+    const userId = @json(isset($user) ? $user->id : null);
+
+    const endpoints = {
+        username: @json(route('validate.username')),
+        email: @json(route('validate.email')),
+        phone: @json(route('validate.phone')),
+        password: @json(route('validate.password')),
+    };
+
+    // --------------------------------------------------
+    // Select2: searchable multi-select roles
+    // --------------------------------------------------
+    if (window.jQuery && jQuery.fn.select2) {
+        jQuery('#roleSelect').select2({
+            placeholder: 'Search and select roles...',
+            allowClear: true,
+            width: '100%',
+            closeOnSelect: false,
         });
+    }
 
-        // ============================================================
-        // Username auto-fill + password visibility toggles
-        // ============================================================
-        document.addEventListener('DOMContentLoaded', () => {
+    // --------------------------------------------------
+    // Reusable status indicator
+    // --------------------------------------------------
+    function showStatus(id, message, state = 'neutral') {
+        const element = document.getElementById(id);
+        if (!element) return;
 
-            // ---------- Username auto-fill ----------
-            const firstNameInput = document.getElementById('first_name');
-            const lastNameInput  = document.getElementById('last_name');
-            const usernameInput  = document.getElementById('username');
+        const styles = {
+            neutral: 'text-gray-500 dark:text-gray-400',
+            loading: 'text-indigo-500',
+            success: 'text-emerald-600 dark:text-emerald-400',
+            error: 'text-red-600 dark:text-red-400',
+            warning: 'text-amber-600 dark:text-amber-400',
+        };
 
-            if (firstNameInput && lastNameInput && usernameInput) {
-                let userEditedUsername = usernameInput.value.trim() !== '';
+        element.className = 'mt-2 text-xs font-medium ' +
+            (styles[state] || styles.neutral);
 
-                usernameInput.addEventListener('input', () => {
-                    userEditedUsername = true;
-                });
+        element.textContent = message;
+    }
 
-                const slugify = (value) =>
-                    value.toString()
-                        .normalize('NFKD')
-                        .replace(/[\u0300-\u036f]/g, '')
-                        .toLowerCase()
-                        .trim()
-                        .replace(/[^a-z0-9._-]+/g, '')
-                        .replace(/^[._-]+|[._-]+$/g, '')
-                        .substring(0, 30);
+    // --------------------------------------------------
+    // Debounce helper
+    // --------------------------------------------------
+    function debounce(callback, delay = 500) {
+        let timer;
 
-                const buildUsername = () => {
-                    if (userEditedUsername) return;
-                    const first = slugify(firstNameInput.value || '');
-                    const last  = slugify(lastNameInput.value  || '');
-                    let candidate = first;
-                    if (first && last) candidate = `${first}.${last}`;
-                    else if (last)     candidate = last;
-                    usernameInput.value = candidate.substring(0, 30);
-                };
+        return (...args) => {
+            clearTimeout(timer);
+            timer = setTimeout(() => callback(...args), delay);
+        };
+    }
 
-                firstNameInput.addEventListener('input', buildUsername);
-                lastNameInput.addEventListener('input', buildUsername);
+    // --------------------------------------------------
+    // Generic live availability checker
+    // --------------------------------------------------
+    async function checkAvailability(field, value, statusId) {
+        const params = new URLSearchParams({ [field]: value });
+
+        if (userId) {
+            params.set(
+                field === 'phone' ? 'ignore_user' : 'ignore',
+                userId
+            );
+        }
+
+        showStatus(statusId, 'Checking availability...', 'loading');
+
+        try {
+            const response = await fetch(
+                `${endpoints[field]}?${params.toString()}`,
+                {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error('Validation request failed');
             }
 
-            // ---------- Password visibility toggles ----------
-            document.querySelectorAll('[data-toggle-password]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const input = document.getElementById(btn.dataset.togglePassword);
-                    if (!input) return;
+            return await response.json();
+        } catch (error) {
+            showStatus(
+                statusId,
+                'Could not verify availability. Try again.',
+                'warning'
+            );
 
-                    const isHidden = input.type === 'password';
-                    input.type = isHidden ? 'text' : 'password';
+            return null;
+        }
+    }
 
-                    btn.querySelector('[data-eye-open]')?.classList.toggle('hidden', isHidden);
-                    btn.querySelector('[data-eye-closed]')?.classList.toggle('hidden', !isHidden);
-                });
+    // --------------------------------------------------
+    // Username auto-generation
+    // --------------------------------------------------
+    const firstName = document.getElementById('first_name');
+    const lastName = document.getElementById('last_name');
+    const username = document.getElementById('username');
+
+    let usernameManuallyEdited = Boolean(username?.value.trim());
+
+    const slugify = value => value
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9._-]+/g, '.')
+        .replace(/^[._-]+|[._-]+$/g, '')
+        .slice(0, 30);
+
+    function generateUsername() {
+        if (!username || usernameManuallyEdited) return;
+
+        const first = slugify(firstName?.value || '');
+        const last = slugify(lastName?.value || '');
+
+        username.value = [first, last]
+            .filter(Boolean)
+            .join('.')
+            .slice(0, 30);
+
+        username.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    firstName?.addEventListener('input', generateUsername);
+    lastName?.addEventListener('input', generateUsername);
+
+    const usernameInput = document.getElementById('username');
+
+    const validateUsername = debounce(async () => {
+        const value = usernameInput.value.trim();
+
+        if (value.length < 3) {
+            showStatus(
+                'username-status',
+                'Enter at least 3 characters.',
+                'neutral'
+            );
+            return;
+        }
+
+        const result = await checkAvailability(
+            'username',
+            value,
+            'username-status'
+        );
+
+        // Ignore results if the user has typed something new.
+        if (usernameInput.value.trim() !== value || !result) return;
+
+        showStatus(
+            'username-status',
+            result.message,
+            result.valid ? 'success' : 'error'
+        );
+    });
+
+    usernameInput?.addEventListener('input', () => {
+        usernameManuallyEdited = true;
+        validateUsername();
+    });
+
+    // --------------------------------------------------
+    // Email availability
+    // --------------------------------------------------
+    const emailInput = document.getElementById('email');
+
+    const validateEmail = debounce(async () => {
+        const value = emailInput.value.trim();
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+            showStatus(
+                'email-status',
+                'Enter a valid email address.',
+                'neutral'
+            );
+            return;
+        }
+
+        const result = await checkAvailability(
+            'email',
+            value,
+            'email-status'
+        );
+
+        if (emailInput.value.trim() !== value || !result) return;
+
+        showStatus(
+            'email-status',
+            result.message,
+            result.valid ? 'success' : 'error'
+        );
+    });
+
+    emailInput?.addEventListener('input', validateEmail);
+
+   
+
+    // --------------------------------------------------
+    // Password strength: live server validation
+    // --------------------------------------------------
+    const passwordInput = document.getElementById('password');
+    const strengthLabel = document.getElementById(
+        'password-strength-label'
+    );
+    const passwordFeedback = document.getElementById(
+        'password-feedback'
+    );
+    const strengthBars = document.querySelectorAll(
+        '[data-strength-bar]'
+    );
+
+    const strengthColors = {
+        1: 'bg-red-500',
+        2: 'bg-orange-500',
+        3: 'bg-amber-500',
+        4: 'bg-lime-500',
+        5: 'bg-emerald-500',
+    };
+
+    let passwordRequest = 0;
+
+    const validatePassword = debounce(async () => {
+        const value = passwordInput.value;
+        const requestId = ++passwordRequest;
+
+        if (!value) {
+            strengthLabel.textContent = 'Not entered';
+            passwordFeedback.textContent = '';
+            strengthBars.forEach(bar => {
+                bar.className =
+                    'h-1.5 rounded-full bg-gray-200 dark:bg-gray-700';
             });
+            updatePasswordMatch();
+            return;
+        }
+
+        strengthLabel.textContent = 'Checking...';
+
+        try {
+            const response = await fetch(endpoints.password, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': @json(csrf_token()),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({ password: value }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Password validation failed');
+            }
+
+            const result = await response.json();
+
+            if (
+                requestId !== passwordRequest ||
+                passwordInput.value !== value
+            ) return;
+
+            strengthLabel.textContent = result.label;
+            passwordFeedback.textContent = result.message;
+
+            strengthBars.forEach((bar, index) => {
+                bar.className = 'h-1.5 rounded-full ' +
+                    (index < result.score
+                        ? strengthColors[result.score]
+                        : 'bg-gray-200 dark:bg-gray-700');
+            });
+
+            strengthLabel.className =
+                'text-xs font-semibold ' +
+                (result.valid
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-red-600 dark:text-red-400');
+
+            updatePasswordMatch();
+        } catch (error) {
+            if (requestId === passwordRequest) {
+                passwordFeedback.textContent =
+                    'Could not check password strength.';
+            }
+        }
+    }, 250);
+
+    passwordInput?.addEventListener('input', validatePassword);
+
+    // --------------------------------------------------
+    // Confirm password match
+    // --------------------------------------------------
+    const confirmInput = document.getElementById('password-confirm');
+
+    function updatePasswordMatch() {
+        if (!passwordInput || !confirmInput) return;
+
+        const password = passwordInput.value;
+        const confirmation = confirmInput.value;
+
+        if (!confirmation) {
+            showStatus(
+                'password-confirm-status',
+                '',
+                'neutral'
+            );
+            return;
+        }
+
+        if (password === confirmation) {
+            showStatus(
+                'password-confirm-status',
+                '✓ Passwords match.',
+                'success'
+            );
+        } else {
+            showStatus(
+                'password-confirm-status',
+                'Passwords do not match.',
+                'error'
+            );
+        }
+    }
+
+    passwordInput?.addEventListener('input', updatePasswordMatch);
+    confirmInput?.addEventListener('input', updatePasswordMatch);
+
+    // --------------------------------------------------
+    // Show/hide password controls
+    // --------------------------------------------------
+    document.querySelectorAll('[data-toggle-password]').forEach(button => {
+        button.addEventListener('click', () => {
+            const input = document.getElementById(
+                button.dataset.togglePassword
+            );
+
+            if (!input) return;
+
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+
+            button.querySelector('[data-eye-open]')
+                ?.classList.toggle('hidden', isHidden);
+
+            button.querySelector('[data-eye-closed]')
+                ?.classList.toggle('hidden', !isHidden);
         });
+    });
+});
     </script>
 @endpush

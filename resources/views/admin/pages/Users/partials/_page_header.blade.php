@@ -251,10 +251,19 @@
         @endif
 
         {{-- ── CREATE USER ───────────────────────────────────── --}}
-        <a href="{{ route('users.create') }}"
+        {{-- <a href="{{ route('users.create') }}"
            class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-500/40 hover:brightness-105 active:translate-y-0">
             <i class="ri-add-line text-lg"></i>
             <span>Create User</span>
-        </a>
+        </a> --}}
+
+        {{-- ── CREATE USER (opens modal in-place) ───────────── --}}
+        <button type="button" onclick="window.openCreateUserModal()"
+                class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:brightness-105">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+            </svg>
+            <span>Create User</span>
+        </button>
     </div>
 </header>

@@ -7,16 +7,18 @@ use App\Http\Enums\EmployeeStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Concerns\LogsActivity;
 
 class Employee extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, LogsActivity;
 
     protected $table = 'employees';   
 
     protected $fillable = [
         'user_id',
         'job_profile_id',
+        'emp_code',
         'department_id',
         'country_id',
         'city_id',

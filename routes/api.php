@@ -30,18 +30,31 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // ─── Location cascade ─────────────────────────────────────
-Route::middleware(['auth'])->group(function () {
-    Route::get(
-        'states',
-        fn(Request $r) =>
-            State::where('country_id', $r->country_id)->orderBy('name')->get(['id', 'name'])
-    );
-    Route::get(
-        'cities',
-        fn(Request $r) =>
-            City::where('state_id', $r->state_id)->orderBy('name')->get(['id', 'name'])
-    );
-});
+// Route::middleware(['auth'])->group(function () {
+//     Route::get(
+//         'states',
+//         fn(Request $r) =>
+//             State::where('country_id', $r->country_id)->orderBy('name')->get(['id', 'name'])
+//     );
+//     Route::get(
+//         'cities',
+//         fn(Request $r) =>
+//             City::where('state_id', $r->state_id)->orderBy('name')->get(['id', 'name'])
+//     );
+// });
+
+
+Route::get(
+    'states',
+    fn(Request $r) =>
+        State::where('country_id', $r->country_id)->orderBy('name')->get(['id', 'name'])
+);
+Route::get(
+    'cities',
+    fn(Request $r) =>
+        City::where('state_id', $r->state_id)->orderBy('name')->get(['id', 'name'])
+);
+
 
 // ─── Employees ────────────────────────────────────────────
 Route::prefix('v1')            // optional versioning — drop if not needed

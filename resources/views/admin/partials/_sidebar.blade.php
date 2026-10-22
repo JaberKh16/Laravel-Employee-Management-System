@@ -198,6 +198,7 @@
                                 Route::has('permissions.index') ? 'permissions.index' : null => __('Permissions'),
                                 Route::has('social.services.index') ? 'social.services.index' : null => __('Social Services'),
                                 Route::has('audit.index')       ? 'audit.index'       : null => __('Audit Log'),
+                                Route::has('notifications.index')       ? 'notifications.index'       : null => __('Notifacation Log'),
                             ], fn ($k) => $k !== null, ARRAY_FILTER_USE_KEY) as $routeName => $label)
                                 @continue(! Route::has($routeName))
                                 @php $active = request()->routeIs($routeName); @endphp
@@ -602,12 +603,14 @@
 
             const toggle      = document.getElementById('sidebar-collapse-toggle');
             const backdrop    = document.getElementById('sidebar-backdrop');
+            const mainContent = document.getElementById('main-content');
             const STORAGE_KEY = 'sb.sidebar.collapsed';
 
             /* =========================================================
             1. SIDEBAR COLLAPSE — bulletproof
             ========================================================= */
             // console.log('[sidebar] collapse init. stored=', localStorage.getItem(STORAGE_KEY));
+            if (!mainContent) return;
 
             const applyCollapsed = (collapsed, skipAnim = false) => {
                 if (skipAnim) body.classList.add('no-anim');
@@ -617,6 +620,8 @@
                 body.classList.toggle('sidebar-collapsed', collapsed);
                 body.setAttribute('data-sidebar-collapsed', collapsed ? 'true' : 'false');
 
+               
+
                 if (skipAnim) {
                     void body.offsetWidth;
                     requestAnimationFrame(() => requestAnimationFrame(() =>
@@ -625,6 +630,9 @@
 
                 // Auto-close accordion dropdowns when collapsing.
                 if (collapsed) {
+                    // ✅ Always swap the main-content margin — both directions.
+                    mainContent.classList.toggle('lg:ml-64', !collapsed);
+                    mainContent.classList.toggle('lg:ml-[6rem]', collapsed);
                     document.querySelectorAll('.sidebar-dropdown').forEach(ul => ul.classList.add('hidden'));
                     document.querySelectorAll('[data-collapse-toggle]').forEach(btn =>
                         btn.setAttribute('aria-expanded', 'false'));

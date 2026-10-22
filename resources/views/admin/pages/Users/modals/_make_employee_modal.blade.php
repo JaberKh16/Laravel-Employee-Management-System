@@ -2,16 +2,58 @@
     <div class="modal-card w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-800">
 
         {{-- ═══════════════ HEADER ═══════════════ --}}
+        @php $isEmployee = $is_employee ?? false; @endphp
         <div class="border-b border-gray-200 bg-gradient-to-br from-emerald-50 to-teal-50 px-6 py-5 dark:border-gray-700 dark:from-emerald-950/30 dark:to-teal-950/20">
             <div class="flex items-center gap-4">
+
+                {{-- icon --}}
                 <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-950/60">
                     <i class="ri-briefcase-4-line text-2xl text-emerald-600 dark:text-emerald-400"></i>
                 </div>
-                <div class="min-w-0">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Convert to Employee</h3>
+
+                {{-- title + subtitle --}}
+                <div class="min-w-0 flex-1">
+                    <h3 id="meModalTitle" class="text-lg font-bold text-gray-900 dark:text-white">
+                        {{ $isEmployee ? 'Employee Information' : 'Convert to Employee' }}
+                    </h3>
                     <p class="mt-0.5 text-sm text-gray-600 dark:text-gray-400">
-                        Make <strong id="makeEmployeeName" class="text-gray-900 dark:text-white">this user</strong> an employee.
+                        @if ($isEmployee)
+                            Update <strong id="makeEmployeeName" class="text-gray-900 dark:text-white">this employee</strong>'s information.
+                        @else
+                            Make <strong id="makeEmployeeName" class="text-gray-900 dark:text-white">this user</strong> an employee.
+                        @endif
                     </p>
+                </div>
+
+                {{-- right-side badges --}}
+                <div class="flex shrink-0 flex-col items-end gap-2">
+
+                    {{-- Employee / Non Employee status badge --}}
+                    <div id="meRightStatusBadge"
+                        class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold
+                                {{ $isEmployee
+                                    ? 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300'
+                                    : 'border-gray-200 bg-gray-100 text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300' }}">
+                        <i id="meRightStatusIcon"
+                        class="{{ $isEmployee ? 'ri-user-star-line' : 'ri-user-line' }} text-base"></i>
+                        <span id="meRightStatusLabel">{{ $isEmployee ? 'Employee' : 'Non Employee' }}</span>
+                    </div>
+
+                    {{-- Job Profile badge (hidden until JS reveals it) --}}
+                    <div id="meRightJobProfileBadge"
+                        class="hidden inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold">
+                        <i id="meRightJobProfileIcon" class="ri-profile-line text-base"></i>
+                        <span id="meRightJobProfileLabel">Job Profile — none</span>
+
+                        {{-- Icon button that opens the job profile template --}}
+                        <button type="button"
+                                id="meRightJobProfileBtn"
+                                title="Open job profile"
+                                class="hidden ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+                            <i class="ri-external-link-line text-[11px]"></i>
+                        </button>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -254,14 +296,30 @@
                     Cancel
                 </button>
 
-                @include('components.loading.button', [
-                    'id'      => 'makeEmployeeSubmit',
-                    'label'   => 'Yes, make employee',
-                    'loading' => 'Converting…',
-                    'type'    => 'submit',
-                    'variant' => 'success',
-                    'icon'    => 'ri-briefcase-4-fill',
-                ])
+                @php $isEmployee = $is_employee ?? false; @endphp
+
+                @if ($isEmployee)
+                    @include('components.loading.button', [
+                        'id'      => 'makeEmployeeSubmit',
+                        'label'   => 'Update information',
+                        'loading' => 'Saving…',
+                        'type'    => 'submit',
+                        'variant' => 'primary',      
+                        'icon'    => 'ri-save-3-line',
+                        'data-role' => 'submit-label',
+                    ])
+                @else
+                    @include('components.loading.button', [
+                        'id'      => 'makeEmployeeSubmit',
+                        'label'   => 'Yes, make employee',
+                        'loading' => 'Converting…',
+                        'type'    => 'submit',
+                        'variant' => 'success',
+                        'icon'    => 'ri-briefcase-4-fill',
+                        'data-role' => 'submit-label',
+                    ])
+                @endif
+                            
             </div>
         </form>
     </div>

@@ -24,6 +24,15 @@
 |--------------------------------------------------------------------------
 --}}
 
+{{-- @props([
+    'id' => null,
+    'label' => 'Submit',
+    'loading' => 'Loading…',
+    'type' => 'button',
+    'variant' => 'primary',
+    'icon' => null,
+    'dataRole' => null,
+]) --}}
 
 @php
     $id          = $id          ?? 'btn-' . uniqid();
@@ -36,6 +45,7 @@
     $loadingIcon = $loadingIcon ?? null;
     $class       = $class       ?? '';
     $attrs       = $attrs       ?? '';
+    $dataRole    = $dataRole    ?? '';
 
     /* ── Variants ─────────────────────────────────────────────── */
     $variants = [
@@ -90,6 +100,7 @@
         id="{{ $id }}"
         data-loading-text="{{ $loading }}"
         data-original-icon="{{ $finalIcon }}"
+        @if($dataRole) data-role="{{ $dataRole }}" @endif
         {!! $attrs !!}
         class="btn-loading group relative inline-flex items-center justify-center font-semibold
                shadow-sm transition-all duration-200

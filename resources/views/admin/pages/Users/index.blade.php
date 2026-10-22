@@ -1,5 +1,4 @@
 @extends('admin.layout.main')
-
 @push('dashboard_style')
 @include('admin.pages.Users.partials._page_styles')
 @endpush
@@ -36,10 +35,13 @@
     @include('admin.pages.Users.partials._bulk_operations_drawer')
 
     {{-- Modals --}}
-    @include('admin.pages.Users.partials._profile_view_modal')
-    @include('admin.pages.Users.partials._make_employee_modal')
+    @include('admin.pages.Users.modals._create-modal')
+    @include('admin.pages.Users.modals._edit-modal')
+    @include('admin.pages.Users.modals._profile_view_modal')
+    @include('admin.pages.Users.modals._make_employee_modal')
 
 @endsection
 
 @include('admin.pages.Users.partials._meta_scripts')
 @include('admin.pages.Users.partials._page_scripts')
+@include('admin.pages.Users.partials._user-modal-script')

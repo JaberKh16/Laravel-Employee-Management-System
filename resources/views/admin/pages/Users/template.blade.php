@@ -1,260 +1,90 @@
-{{-- resources/views/users/partials/_form.blade.php --}}
-@php
-    $isEdit = isset($user) && $user->exists;
-    $action = $isEdit ? route('users.update', $user) : route('users.store');
-    $method = $isEdit ? 'PUT' : 'POST';
-@endphp
+@extends('admin.layout.main')
 
-<form action="{{ $action }}"
-      method="POST"
-      id="userForm"
-      novalidate
-      data-ignore-id="{{ $isEdit ? $user->id : '' }}">
-    @csrf
-    @method($method)
+@push('dashboard_style')
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container { width: 100% !important; }
+    .select2-container--default .select2-selection--multiple {
+        min-height: 44px; border: 1px solid #d1d5db; border-radius: 12px;
+        padding: 4px 8px; background: #fff;
+    }
+    .select2-container--default.select2-container--focus .select2-selection--multiple {
+        border-color: #6366f1; box-shadow: 0 0 0 3px rgb(99 102 241 / 15%);
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 7px;
+        color: #4338ca; padding: 3px 7px; margin-top: 4px;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+        color: #6366f1; margin-right: 5px;
+    }
+    .select2-dropdown {
+        border: 1px solid #c7d2fe; border-radius: 10px;
+        overflow: hidden; box-shadow: 0 10px 25px rgb(0 0 0 / 8%);
+    }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background: #4f46e5;
+    }
+    .dark .select2-container--default .select2-selection--multiple {
+        background: #111827; border-color: #4b5563; color: #f9fafb;
+    }
+    .dark .select2-container--default .select2-selection--multiple .select2-selection__rendered {
+        color: #f9fafb;
+    }
+    .dark .select2-dropdown {
+        background: #1f2937; border-color: #4b5563; color: #f9fafb;
+    }
+    .dark .select2-container--default .select2-results__option[aria-selected="true"] {
+        background: #374151;
+    }
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    /* Modal shell */
+    .user-modal-backdrop { backdrop-filter: blur(2px); animation: umFadeIn .18s ease-out; }
+    .user-modal-panel    { animation: umSlideUp .22s cubic-bezier(.2,.9,.3,1); }
+    @keyframes umFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes umSlideUp {
+        from { transform: translateY(14px) scale(.985); opacity: 0; }
+        to   { transform: translateY(0)    scale(1);    opacity: 1; }
+    }
+    body.um-scroll-lock { overflow: hidden; }
+</style>
+@endpush
 
-        {{-- ── Username ───────────────────────────────────── --}}
-        <div>
-            <label for="username" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                Username <span class="text-red-500">*</span>
-            </label>
-            <div class="relative">
-                <input type="text"
-                       name="username"
-                       id="username"
-                       value="{{ old('username', $user->username ?? '') }}"
-                       data-validate="username"
-                       data-ignore="{{ $isEdit ? $user->id : '' }}"
-                       autocomplete="off"
-                       placeholder="e.g. jdoe"
-                       class="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800
-                              focus:border-blue-500 focus:ring-blue-500 pr-10 transition-colors">
-                <span class="field-icon absolute right-3 top-1/2 -translate-y-1/2 hidden"></span>
+@section('dashboard_content')
+    <div class="mx-auto max-w-3xl">
+        <header class="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-gray-200 pb-5 dark:border-gray-700">
+            <div>
+                <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+                    Users
+                </h1>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Create or edit users from here.
+                </p>
             </div>
-            <p class="field-message text-xs mt-1 hidden"></p>
-            @error('username')
-                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-            @enderror
-        </div>
-
-        {{-- ── Email ──────────────────────────────────────── --}}
-        <div>
-            <label for="email" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                Email <span class="text-red-500">*</span>
-            </label>
-            <div class="relative">
-                <input type="email"
-                       name="email"
-                       id="email"
-                       value="{{ old('email', $user->email ?? '') }}"
-                       data-validate="email"
-                       data-ignore="{{ $isEdit ? $user->id : '' }}"
-                       autocomplete="off"
-                       placeholder="e.g. jdoe@example.com"
-                       class="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800
-                              focus:border-blue-500 focus:ring-blue-500 pr-10 transition-colors">
-                <span class="field-icon absolute right-3 top-1/2 -translate-y-1/2 hidden"></span>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('users.index') }}"
+                   class="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
+                    </svg>
+                    <span>Back to Users</span>
+                </a>
+                <button type="button" onclick="window.openCreateUserModal()"
+                        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:brightness-105">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                    </svg>
+                    <span>Create User</span>
+                </button>
             </div>
-            <p class="field-message text-xs mt-1 hidden"></p>
-            @error('email')
-                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-            @enderror
-        </div>
-
-        {{-- ── Password ───────────────────────────────────── --}}
-        <div>
-            <label for="password" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                Password @unless($isEdit)<span class="text-red-500">*</span>@endunless
-            </label>
-            <div class="relative">
-                <input type="password"
-                       name="password"
-                       id="password"
-                       data-validate="password"
-                       autocomplete="new-password"
-                       placeholder="{{ $isEdit ? 'Leave blank to keep current' : 'Min 8 chars' }}"
-                       class="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800
-                              focus:border-blue-500 focus:ring-blue-500 pr-10 transition-colors">
-                <span class="field-icon absolute right-3 top-1/2 -translate-y-1/2 hidden"></span>
-            </div>
-            {{-- Strength bar --}}
-            <div class="mt-2 h-1.5 w-full rounded bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                <div id="pwBar" class="h-full w-0 transition-all duration-300"></div>
-            </div>
-            <p class="field-message text-xs mt-1 hidden"></p>
-            @error('password')
-                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-            @enderror
-        </div>
-
-        {{-- ── Confirm Password ───────────────────────────── --}}
-        <div>
-            <label for="password_confirmation" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                Confirm Password @unless($isEdit)<span class="text-red-500">*</span>@endunless
-            </label>
-            <div class="relative">
-                <input type="password"
-                       name="password_confirmation"
-                       id="password_confirmation"
-                       data-match="password"
-                       autocomplete="new-password"
-                       placeholder="Re-type password"
-                       class="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800
-                              focus:border-blue-500 focus:ring-blue-500 pr-10 transition-colors">
-                <span class="field-icon absolute right-3 top-1/2 -translate-y-1/2 hidden"></span>
-            </div>
-            <p class="field-message text-xs mt-1 hidden"></p>
-        </div>
-
-        {{-- ── First Name ─────────────────────────────────── --}}
-        <div>
-            <label for="first_name" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                First Name <span class="text-red-500">*</span>
-            </label>
-            <input type="text"
-                   name="first_name"
-                   id="first_name"
-                   value="{{ old('first_name', $user->profile->first_name ?? '') }}"
-                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800
-                          focus:border-blue-500 focus:ring-blue-500">
-            @error('first_name')
-                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-            @enderror
-        </div>
-
-        {{-- ── Last Name ──────────────────────────────────── --}}
-        <div>
-            <label for="last_name" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                Last Name <span class="text-red-500">*</span>
-            </label>
-            <input type="text"
-                   name="last_name"
-                   id="last_name"
-                   value="{{ old('last_name', $user->profile->last_name ?? '') }}"
-                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800
-                          focus:border-blue-500 focus:ring-blue-500">
-            @error('last_name')
-                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-            @enderror
-        </div>
-
-        {{-- ── Middle Name ────────────────────────────────── --}}
-        <div>
-            <label for="middle_name" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                Middle Name
-            </label>
-            <input type="text"
-                   name="middle_name"
-                   id="middle_name"
-                   value="{{ old('middle_name', $user->profile->middle_name ?? '') }}"
-                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800
-                          focus:border-blue-500 focus:ring-blue-500">
-        </div>
-
-        {{-- ── Phone ──────────────────────────────────────── --}}
-        <div>
-            <label for="phone" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                Phone
-            </label>
-            <div class="relative">
-                <input type="text"
-                       name="phone"
-                       id="phone"
-                       value="{{ old('phone', $user->profile->phone ?? '') }}"
-                       data-validate="phone"
-                       data-ignore_user="{{ $isEdit ? $user->id : '' }}"
-                       autocomplete="off"
-                       placeholder="e.g. 09171234567"
-                       class="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800
-                              focus:border-blue-500 focus:ring-blue-500 pr-10 transition-colors">
-                <span class="field-icon absolute right-3 top-1/2 -translate-y-1/2 hidden"></span>
-            </div>
-            <p class="field-message text-xs mt-1 hidden"></p>
-            @error('phone')
-                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-            @enderror
-        </div>
-
-        {{-- ── Gender (searchable select) ─────────────────── --}}
-        <div>
-            <label for="gender" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                Gender
-            </label>
-            <select name="gender"
-                    id="gender"
-                    placeholder="Search or select gender…"
-                    class="tom-select w-full">
-                <option value="">— Select —</option>
-                <option value="male"   @selected(old('gender', $user->profile->gender ?? '') === 'male')>
-                    Male
-                </option>
-                <option value="female" @selected(old('gender', $user->profile->gender ?? '') === 'female')>
-                    Female
-                </option>
-                <option value="other"  @selected(old('gender', $user->profile->gender ?? '') === 'other')>
-                    Other
-                </option>
-            </select>
-            @error('gender')
-                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-            @enderror
-        </div>
-
-        {{-- ── Birthdate ──────────────────────────────────── --}}
-        <div>
-            <label for="birthdate" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                Birthdate
-            </label>
-            <input type="date"
-                   name="birthdate"
-                   id="birthdate"
-                   value="{{ old('birthdate', isset($user->profile->birthdate) ? $user->profile->birthdate->format('Y-m-d') : '') }}"
-                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800
-                          focus:border-blue-500 focus:ring-blue-500">
-            @error('birthdate')
-                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-            @enderror
-        </div>
-
-        {{-- ── Roles (multi-select, searchable) ───────────── --}}
-        <div class="md:col-span-2">
-            <label for="roles" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                Roles
-            </label>
-            <select name="roles[]"
-                    id="roles"
-                    multiple
-                    placeholder="Search roles…"
-                    class="tom-select w-full">
-                @foreach ($roles as $role)
-                    <option value="{{ $role->name }}"
-                            data-icon="{{ $role->icon ?? '' }}"
-                            @selected(in_array($role->name, old('roles', $isEdit ? $user->getRoleNames()->all() : [])))>
-                        {{ ucfirst($role->name) }}
-                    </option>
-                @endforeach
-            </select>
-            @error('roles')
-                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-            @enderror
-        </div>
+        </header>
     </div>
 
-    {{-- ── Actions ────────────────────────────────────────── --}}
-    <div class="mt-8 flex justify-end gap-2">
-        <a href="{{ route('users.index') }}"
-           class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600
-                  text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800
-                  transition-colors">
-            Cancel
-        </a>
-        <button type="submit"
-                id="submitBtn"
-                class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700
-                       disabled:opacity-50 transition-colors">
-            {{ $isEdit ? 'Update User' : 'Create User' }}
-        </button>
-    </div>
-</form>
+    @include('admin.users.modals._create-modal')
+    @include('admin.users.modals._edit-modal')
+@endsection
+
+@push('dashboard_script')
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+@include('admin.users.partials._user-modal-script')
+@endpush

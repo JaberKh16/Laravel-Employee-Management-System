@@ -1136,30 +1136,94 @@ document.addEventListener('DOMContentLoaded', function () {
     /* ════════════════════════════════════════════════════════════
        MAKE EMPLOYEE — cascading + auto-age + submit loading
        ════════════════════════════════════════════════════════════ */
-    if (meDob && !meDob.dataset.ageBound) {
-        meDob.dataset.ageBound = '1';
-        meDob.addEventListener('change', computeAge);
+    /* ── Generic required-field error helper ── */
+    function setFieldError(input, message) {
+        if (!input) return;
+        const wrap = input.closest('div');
+        const errId = input.id + '_error';
+        let errEl = wrap?.querySelector('#' + errId);
+
+        input.classList.remove('border-gray-300', 'dark:border-gray-600',
+                                'focus:border-emerald-500', 'focus:ring-emerald-500/30');
+        input.classList.add('border-red-400', 'dark:border-red-500',
+                            'focus:border-red-400', 'focus:ring-red-500/30');
+        input.setAttribute('aria-invalid', 'true');
+
+        if (!errEl && wrap) {
+            errEl = document.createElement('p');
+            errEl.id = errId;
+            errEl.className = 'mt-1 flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400';
+            errEl.innerHTML = '<i class="ri-error-warning-line text-sm"></i><span></span>';
+            wrap.appendChild(errEl);
+        }
+        if (errEl) {
+            errEl.querySelector('span').textContent = message;
+            errEl.classList.remove('hidden');
+        }
+        input.focus({ preventScroll: false });
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    if (meCountry && !meCountry.dataset.cascadeBound) {
-        meCountry.dataset.cascadeBound = '1';
-        meCountry.addEventListener('change', e => {
-            loadMeStates(e.target.value);
-        });
-    }
+    function clearFieldError(input) {
+        if (!input) return;
+        input.classList.remove('border-red-400', 'dark:border-red-500',
+                                'focus:border-red-400', 'focus:ring-red-500/30');
+        input.classList.add('border-gray-300', 'dark:border-gray-600',
+                            'focus:border-emerald-500', 'focus:ring-emerald-500/30');
+        input.setAttribute('aria-invalid', 'false');
 
-    if (meState && !meState.dataset.cascadeBound) {
-        meState.dataset.cascadeBound = '1';
-        meState.addEventListener('change', e => {
-            loadMeCities(e.target.value);
-        });
+        const wrap = input.closest('div');
+        const errEl = wrap?.querySelector('#' + input.id + '_error');
+        errEl?.classList.add('hidden');
     }
 
     if (makeEmployeeForm && !makeEmployeeForm.dataset.submitBound) {
         makeEmployeeForm.dataset.submitBound = '1';
-        makeEmployeeForm.addEventListener('submit', function () {
+
+        makeEmployeeForm.addEventListener('submit', function (event) {
+            const requiredFields = [
+                { input: meName,        label: 'Full name' },
+                { input: meDob,         label: 'Date of birth' },
+                { input: meGender,      label: 'Gender' },
+                { input: meDepartment,  label: 'Department' },
+            ];
+
+            let firstInvalid = null;
+
+            requiredFields.forEach(({ input, label }) => {
+                if (!input) return;
+                const empty = input.type === 'date' ? !input.value : !input.value?.trim();
+                if (empty) {
+                    setFieldError(input, label + ' is required.');
+                    firstInvalid = firstInvalid || input;
+                } else {
+                    clearFieldError(input);
+                }
+            });
+
+            // Extra: DOB must be in the past
+            if (meDob?.value && new Date(meDob.value) > new Date()) {
+                setFieldError(meDob, 'Date of birth cannot be in the future.');
+                firstInvalid = firstInvalid || meDob;
+            }
+
+            if (firstInvalid) {
+                event.preventDefault();
+                event.stopPropagation();
+                notify('warning', 'Please complete all required fields.');
+                return;
+            }
+
             if (typeof window.setButtonLoading === 'function') window.setButtonLoading('makeEmployeeSubmit', true);
             if (typeof window.showLoader === 'function') window.showLoader('Creating employee record…');
+        });
+
+        // Clear on input for all required fields
+        [meName, meDob, meGender, meDepartment].forEach(input => {
+            if (!input || input.dataset.validationBound) return;
+            input.dataset.validationBound = '1';
+            input.addEventListener('change', () => { if (input.value) clearFieldError(input); });
+            input.addEventListener('input',  () => { if (input.value) clearFieldError(input); });
         });
     }
 

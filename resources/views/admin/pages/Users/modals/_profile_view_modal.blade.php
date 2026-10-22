@@ -784,7 +784,7 @@
         sel.innerHTML = '<option value="">Select state…</option>';
         if (!countryId) return Promise.resolve();
 
-        var url = '/api/states?country_id=' + encodeURIComponent(countryId);
+        var url = '/api/v1/states?country_id=' + encodeURIComponent(countryId);
 
         return fetch(url, {
             credentials: 'same-origin',
@@ -806,7 +806,7 @@
         sel.innerHTML = '<option value="">Select city…</option>';
         if (!stateId) return Promise.resolve();
 
-        var url = '/api/cities?state_id=' + encodeURIComponent(stateId);
+        var url = '/api/v1/cities?state_id=' + encodeURIComponent(stateId);
 
         return fetch(url, {
             credentials: 'same-origin',

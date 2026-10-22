@@ -22,6 +22,7 @@ use App\Models\Notification;
 use App\Models\Profile;
 use App\Models\State;
 use App\Models\User;
+use App\Models\JobProfile;
 use App\Services\NotificationService;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
 use Illuminate\Database\QueryException;
@@ -37,6 +38,7 @@ use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use lluminate\Support\Facades\Route;
 use Throwable;
 
 class UserController extends Controller
@@ -148,7 +150,7 @@ class UserController extends Controller
             $roles = Role::select('id', 'name')->orderBy('name')->get();
             $status = ActiveStatus::values();
 
-            return view('admin.pages.Users.create', compact('roles', 'statusOptions'));
+            return view('admin.pages.Users.template', compact('roles', 'statusOptions'));
 
         } catch (Throwable $e) {
             Log::error('Failed to load user create form', [
@@ -226,20 +228,59 @@ class UserController extends Controller
     }
 
 
-    public function edit(User $user)
+    // public function edit(User $user)
+    // {
+    //     try {
+    //         $roles = Role::select('id', 'name')->orderBy('name')->get();
+    //         $userRole = $user->roles->pluck('name')->all();
+
+    //         $user->loadMissing('profile');
+
+    //         return view('admin.pages.Users.edit', compact(
+    //             'user',
+    //             'roles',
+    //             'userRole'
+    //         ));
+
+    //     } catch (Throwable $e) {
+    //         Log::error('Failed to load user edit form', [
+    //             'user_id' => $user->id,
+    //             'error' => $e->getMessage(),
+    //         ]);
+
+    //         return redirect()
+    //             ->route('users.index')
+    //             ->with('error', 'Unable to open the edit form.');
+    //     }
+    // }
+
+    public function edit(Request $request, User $user)
     {
         try {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'id' => $user->id,
+                    'username' => $user->username,
+                    'email' => $user->email,
+                    'profile' => [
+                        'first_name' => $user->profile?->first_name,
+                        'last_name' => $user->profile?->last_name,
+                    ],
+                    'role_ids' => $user->roles->pluck('id')->values(),
+                    'update_url' => route('users.update', $user),
+                ]);
+            }
+
             $roles = Role::select('id', 'name')->orderBy('name')->get();
-            $userRole = $user->roles->pluck('name')->all();
+            $statusOptions = ActiveStatus::values();
+            $userRole = $user->roles;
 
-            $user->loadMissing('profile');
-
-            return view('admin.pages.Users.edit', compact(
+            return view('admin.pages.Users.template', compact(
                 'user',
                 'roles',
+                'statusOptions',
                 'userRole'
             ));
-
         } catch (Throwable $e) {
             Log::error('Failed to load user edit form', [
                 'user_id' => $user->id,
@@ -420,6 +461,12 @@ class UserController extends Controller
         }
     }
 
+    private function splitFullName(string $full): array
+    {
+        $parts = preg_split('/\s+/', trim($full), 2);
+        return [$parts[0] ?? '', $parts[1] ?? ''];
+    }
+
 
     /* ══════════════════════════════════════════════════════════════
        MAKE EMPLOYEE — convert user to employee
@@ -447,80 +494,137 @@ class UserController extends Controller
 
     public function makeEmployee(Request $request, User $user)
     {
+        $validated = $request->validate([
+            // profile / user
+            'name' => ['required', 'string', 'max:255'],
+            'birthdate' => ['required', 'date', 'before_or_equal:today'],
+            'gender' => ['required', 'in:male,female,other'],
+            'zip_code' => ['nullable', 'string', 'max:20'],
+            'country_id' => ['nullable', 'exists:countries,id'],
+            'state_id' => ['nullable', 'exists:states,id'],
+            'city_id' => ['nullable', 'exists:cities,id'],
+            'address' => ['nullable', 'string', 'max:1000'],
+
+            // employee
+            'department_id' => ['required', 'exists:departments,id'],
+            'branch_id' => ['nullable', 'exists:branch,id'],
+            'hired_date' => ['nullable', 'date'],
+
+            // job profile (optional on create)
+            'job_profile_id' => ['nullable', 'integer', 'exists:job_profiles,id'],
+            'employment_type' => ['nullable', 'string', 'max:50'],
+            'designation' => ['nullable', 'string', 'max:150'],
+            'basic_salary' => ['nullable', 'numeric', 'min:0'],
+            'allowance' => ['nullable', 'numeric', 'min:0'],
+            'currency' => ['nullable', 'string', 'max:8'],
+            'national_id' => ['nullable', 'string', 'max:50'],
+            'passport_number' => ['nullable', 'string', 'max:50'],
+            'nationality' => ['nullable', 'string', 'max:80'],
+            'marital_status' => ['nullable', 'string', 'max:30'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'emergency_contact_name' => ['nullable', 'string', 'max:100'],
+            'emergency_contact_phone' => ['nullable', 'string', 'max:30'],
+            'postal_code' => ['nullable', 'string', 'max:20'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        // ── Guard: already an employee? ──
+        if ($user->employee()->exists()) {
+            return $request->expectsJson()
+                ? response()->json([
+                    'success' => false,
+                    'message' => "{$user->username} is already an employee.",
+                ], 422)
+                : back()->with('info', "{$user->username} is already an employee.");
+        }
+
         try {
             DB::beginTransaction();
 
-            // ── Eager load everything the employee flow may need ──
-            $user->load([
-                'profile',
-                'employee.department',
-                'employee.branch',
-                'employee.jobProfile',
-                'roles',
-            ]);
+            // ── 1) Resolve or create the JobProfile first ──
+            $jobProfile = null;
 
-            if ($user->employee) {
-                DB::rollBack();
-                return back()->with('info', "{$user->username} is already an employee.");
+            if (!empty($validated['job_profile_id'])) {
+                $jobProfile = JobProfile::findOrFail($validated['job_profile_id']);
+            } else {
+                $jobProfile = JobProfile::create([
+                    'user_id' => $user->id,
+                    'department_id' => $validated['department_id'] ?? null,
+                    'branch_id' => $validated['branch_id'] ?? null,
+                    'employment_type' => $validated['employment_type'] ?? null,
+                    'designation' => $validated['designation'] ?? null,
+                    'basic_salary' => $validated['basic_salary'] ?? null,
+                    'allowance' => $validated['allowance'] ?? null,
+                    'currency' => $validated['currency'] ?? 'USD',
+                    'national_id' => $validated['national_id'] ?? null,
+                    'passport_number' => $validated['passport_number'] ?? null,
+                    'nationality' => $validated['nationality'] ?? null,
+                    'marital_status' => $validated['marital_status'] ?? null,
+                    'phone' => $validated['phone'] ?? null,
+                    'emergency_contact_name' => $validated['emergency_contact_name'] ?? null,
+                    'emergency_contact_phone' => $validated['emergency_contact_phone'] ?? null,
+                    'postal_code' => $validated['postal_code'] ?? null,
+                    'notes' => $validated['notes'] ?? null,
+                ]);
             }
 
-            // ── Generate unique employee code ──
-            $empCode = $this->generateEmployeeCode();
-
-            // ── Create employee ──
-            Employee::create([
-                'user_id' => $user->id,
-                'emp_code' => $empCode,
-                'department_id' => $request->department_id ?? null,
-                'branch_id' => $request->branch_id ?? null,
-                'job_profile_id' => $request->job_profile_id ?? null,
-                'country_id' => $request->country_id ?? null,
-                'city_id' => $request->city_id ?? null,
-                'state_id' => $request->state_id ?? null,
-                'hired_date' => now(),
+            // ── 2) Create Employee (with job_profile_id) ──
+            $employee = $user->employee()->create([
+                'job_profile_id' => $jobProfile->id,
+                'department_id' => $validated['department_id'],
+                'country_id' => $validated['country_id'] ?? null,
+                'state_id' => $validated['state_id'] ?? null,
+                'city_id' => $validated['city_id'] ?? null,
+                'hired_date' => $validated['hired_date'] ?? now(),
                 'status' => EmployeeStatus::Active->value,
+                'emp_code' => $this->generateEmployeeCode(),
             ]);
 
-            // ── Assign 'employee' role ──
+            // ── 3) Assign the Employee role (replaces existing) ──
             $user->syncRoles(['employee']);
 
-            // ── Optional: backfill profile fields if missing ──
-            if ($user->profile) {
-                $user->profile->update([
-                    'address' => $user->profile->address ?? $request->address,
-                    'zip_code' => $user->profile->zip_code ?? $request->zip_code,
-                    'birthdate' => $user->profile->birthdate ?? $request->birthdate,
-                ]);
-            }
+            // ── 4) Update / create user profile ──
+            [$firstName, $lastName] = $this->splitFullName($validated['name']);
 
-            if ($user->employee) {
-                $user->employee->jobProfile->update([
-                    'branch_id' => $user->employee->jobProfile ?? null,
-                ]);
-            }
+            $user->profile()->updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'first_name' => $firstName,
+                    'last_name' => $lastName,
+                    'birthdate' => $validated['birthdate'],
+                    'gender' => $validated['gender'],
+                    'zip_code' => $validated['zip_code'] ?? null,
+                    'country_id' => $validated['country_id'] ?? null,
+                    'state_id' => $validated['state_id'] ?? null,
+                    'city_id' => $validated['city_id'] ?? null,
+                    'address' => $validated['address'] ?? null,
+                ]
+            );
+
+            $user->update([
+                'created_by' => Auth::user()->id,
+                'updated_by' => Auth::user()->id,
+            ]);
 
             DB::commit();
 
-            // ── Reload user with fresh employee + all nested relations ──
+            // ── 5) Reload for fresh relations ──
             $user->refresh()->load([
                 'profile',
                 'employee.department',
-                'employee.branch',
                 'employee.jobProfile',
                 'roles',
             ]);
 
-            // ── AJAX / JSON response ──
-            if ($request->expectsJson()) {
-                return response()->json([
+            return $request->expectsJson()
+                ? response()->json([
+                    'success' => true,
                     'message' => "{$user->username} is now an employee.",
                     'employee' => $user->employee,
-                    'roles' => $user->getRoleNames(),
                     'user' => $user,
-                ]);
-            }
-
-            return back()->with('success', "{$user->username} is now an employee.");
+                    'roles' => $user->getRoleNames(),
+                ])
+                : back()->with('success', "{$user->username} is now an employee.");
 
         } catch (Throwable $e) {
             DB::rollBack();
@@ -531,14 +635,157 @@ class UserController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            if ($request->expectsJson()) {
-                return response()->json([
+            return $request->expectsJson()
+                ? response()->json([
+                    'success' => false,
                     'message' => 'Unable to convert user to employee.',
                     'error' => $e->getMessage(),
-                ], 500);
-            }
+                ], 500)
+                : back()->with('error', 'Unable to convert user to employee.');
+        }
+    }
 
-            return back()->with('error', 'Unable to convert user to employee.');
+
+
+    public function updateEmployee(Request $request, User $user): JsonResponse
+    {
+        $employee = $user->employee;
+        if (!$employee) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User is not an employee.',
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            // profile / user
+            'name' => ['required', 'string', 'max:255'],
+            'birthdate' => ['required', 'date', 'before_or_equal:today'],
+            'gender' => ['required', 'in:male,female,other'],
+            'zip_code' => ['nullable', 'string', 'max:20'],
+            'country_id' => ['nullable', 'exists:countries,id'],
+            'state_id' => ['nullable', 'exists:states,id'],
+            'city_id' => ['nullable', 'exists:cities,id'],
+            'address' => ['nullable', 'string', 'max:1000'],
+
+            // employee
+            'department_id' => ['required', 'exists:departments,id'],
+            'branch_id' => ['nullable', 'exists:branch,id'],
+
+            // job profile
+            'job_profile_id' => ['nullable', 'integer', 'exists:job_profiles,id'],
+            'employment_type' => ['nullable', 'string', 'max:50'],
+            'designation' => ['nullable', 'string', 'max:150'],
+            'basic_salary' => ['nullable', 'numeric', 'min:0'],
+            'allowance' => ['nullable', 'numeric', 'min:0'],
+            'currency' => ['nullable', 'string', 'max:8'],
+            'national_id' => ['nullable', 'string', 'max:50'],
+            'passport_number' => ['nullable', 'string', 'max:50'],
+            'nationality' => ['nullable', 'string', 'max:80'],
+            'marital_status' => ['nullable', 'string', 'max:30'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'emergency_contact_name' => ['nullable', 'string', 'max:100'],
+            'emergency_contact_phone' => ['nullable', 'string', 'max:30'],
+            'postal_code' => ['nullable', 'string', 'max:20'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        try {
+            DB::transaction(function () use ($user, $employee, $validated) {
+                // ── 1) Employee core fields ──
+                $employee->update([
+                    'department_id' => $validated['department_id'],
+                    'branch_id' => $validated['branch_id'] ?? null,
+                    'country_id' => $validated['country_id'] ?? null,
+                    'state_id' => $validated['state_id'] ?? null,
+                    'city_id' => $validated['city_id'] ?? null,
+                ]);
+
+                // ── 2) Job profile (create if missing) ──
+                $jobProfile = $employee->jobProfile
+                    ?? JobProfile::firstOrCreate(
+                        ['user_id' => $user->id],
+                        ['department_id' => $validated['department_id']]
+                    );
+
+                $jobProfile->fill([
+                    'department_id' => $validated['department_id'] ?? $jobProfile->department_id,
+                    'branch_id' => $validated['branch_id'] ?? $jobProfile->branch_id,
+                    'employment_type' => $validated['employment_type'] ?? $jobProfile->employment_type,
+                    'designation' => $validated['designation'] ?? $jobProfile->designation,
+                    'basic_salary' => $validated['basic_salary'] ?? $jobProfile->basic_salary,
+                    'allowance' => $validated['allowance'] ?? $jobProfile->allowance,
+                    'currency' => $validated['currency'] ?? $jobProfile->currency,
+                    'national_id' => $validated['national_id'] ?? $jobProfile->national_id,
+                    'passport_number' => $validated['passport_number'] ?? $jobProfile->passport_number,
+                    'nationality' => $validated['nationality'] ?? $jobProfile->nationality,
+                    'marital_status' => $validated['marital_status'] ?? $jobProfile->marital_status,
+                    'phone' => $validated['phone'] ?? $jobProfile->phone,
+                    'emergency_contact_name' => $validated['emergency_contact_name'] ?? $jobProfile->emergency_contact_name,
+                    'emergency_contact_phone' => $validated['emergency_contact_phone'] ?? $jobProfile->emergency_contact_phone,
+                    'postal_code' => $validated['postal_code'] ?? $jobProfile->postal_code,
+                    'notes' => $validated['notes'] ?? $jobProfile->notes,
+                ]);
+                $jobProfile->save();
+
+                // ── 3) Ensure employee ↔ job profile link ──
+                if ($employee->job_profile_id !== $jobProfile->id) {
+                    $employee->update(['job_profile_id' => $jobProfile->id]);
+                }
+
+                // ── 4) User profile (split name → first/last) ──
+                [$firstName, $lastName] = $this->splitFullName($validated['name']);
+
+                $user->profile()->updateOrCreate(
+                    ['user_id' => $user->id],
+                    [
+                        'first_name' => $firstName,
+                        'last_name' => $lastName,
+                        'birthdate' => $validated['birthdate'],
+                        'gender' => $validated['gender'],
+                        'zip_code' => $validated['zip_code'] ?? null,
+                        'country_id' => $validated['country_id'] ?? null,
+                        'state_id' => $validated['state_id'] ?? null,
+                        'city_id' => $validated['city_id'] ?? null,
+                        'address' => $validated['address'] ?? null,
+                    ]
+                );
+
+                $user->update([
+                    'created_by' => Auth::user()->id,
+                    'updated_by' => Auth::user()->id,
+                ]);
+
+                // ── 5) Sync role: employee should also have 'employee' ──
+                if (!$user->hasRole('employee')) {
+                    $user->assignRole('employee');
+                }
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "{$user->username} updated.",
+                'data' => [
+                    'employee' => $user->fresh()->employee,
+                    'job_profile' => $user->fresh()->employee?->jobProfile,
+                ],
+                'redirect_url' => \Illuminate\Support\Facades\Route::has('users.index')
+                    ? route('users.index')
+                    : url('/admin/users'),
+            ]);
+
+        } catch (Throwable $e) {
+            Log::error('updateEmployee failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to update employee.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 

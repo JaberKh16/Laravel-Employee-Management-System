@@ -73,10 +73,14 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
 
         Route::post('users/{user}/make-employee', [UserController::class, 'makeEmployee'])
             ->name('users.make-employee');
+        Route::post('users/{user}/update-employee', [UserController::class, 'updateEmployee'])
+        ->name('users.update-employee');
 
-        // Profile modal (specific enough — has /modal suffix)
-        // Route::get('users/{user}/profile', [UserController::class, 'openProfileModal'])->name('users.profile.show');
-        // Route::put('users/{user}/profile/modal', [ProfileController::class, 'updateModalProfile'])->name('users.profile.modal.update');
+        // Optional: update just the job profile
+        Route::post('users/{user}/update-job-profile', [UserController::class, 'updateJobProfile'])
+            ->name('users.update-job-profile');
+        
+
         // ═══════════════════════════════════════════════════════════
         // PROFILE MODAL ROUTES
         // ═══════════════════════════════════════════════════════════

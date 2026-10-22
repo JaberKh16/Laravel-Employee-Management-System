@@ -190,11 +190,24 @@
                                     @endisset
 
                                     @isset($actions['edit'])
-                                        <a href="{{ $actions['edit']['route'] }}"
+                                        {{-- <a href="{{ $actions['edit']['route'] }}"
                                            title="{{ $actions['edit']['label'] }}"
                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg {{ $actions['edit']['color'] }} transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-950/40">
                                             <i class="{{ $actions['edit']['icon'] }} text-base"></i>
-                                        </a>
+                                        </a> --}}
+                                        {{-- ══════════════════════════════════════════════════════
+                                        EDIT — opens modal instead of navigating away
+                                        ══════════════════════════════════════════════════════ --}}
+                                        @if (!empty($actions['edit']['route']))
+                                            <button type="button"
+                                                    onclick="window.openEditUserModal && window.openEditUserModal({{ $user->id }})"
+                                                    title="{{ $actions['edit']['label'] ?? 'Edit' }}"
+                                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg {{ $actions['edit']['color'] ?? 'text-indigo-600' }} transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-950/40">
+                                                <i class="{{ $actions['edit']['icon'] ?? 'ri-pencil-line' }} text-base"></i>
+                                            </button>
+                                        @endif
+
+                                        
                                     @endisset
 
                                     @isset($actions['delete'])
